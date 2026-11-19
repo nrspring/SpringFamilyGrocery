@@ -1,30 +1,19 @@
-// Phone cameras produce 5-15 MB photos. Crop to a centered square and shrink
-// in the browser so headshots upload quickly and load instantly.
+// Phone cameras produce 5-15 MB photos. The cropper hands us a square region
+// of the original; shrink it to a small JPEG in the browser so headshots
+// upload quickly and load instantly.
 
 const HEADSHOT_SIZE = 384;
 
-function loadImage(file: Blob): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Couldn't read that photo. Try another one?"));
-    };
-    img.src = url;
-  });
-}
-
-export async function prepareHeadshot(file: File): Promise<Blob> {
-  const img = await loadImage(file);
-  const side = Math.min(img.naturalWidth, img.naturalHeight);
-  const sx = (img.naturalWidth - side) / 2;
-  const sy = (img.naturalHeight - side) / 2;
-
+/**
+ * Crops a `side` x `side` square (in the image's natural pixels) starting at
+ * (sx, sy) and scales it to a headshot-sized JPEG.
+ */
+export function cropToHeadshot(
+  img: HTMLImageElement,
+  sx: number,
+  sy: number,
+  side: number,
+): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = HEADSHOT_SIZE;
   canvas.height = HEADSHOT_SIZE;

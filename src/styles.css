@@ -230,15 +230,6 @@ button.small {
   gap: 16px;
   margin-bottom: 8px;
 }
-.file-button {
-  display: inline-block;
-  padding: 8px 14px;
-  border: 1px solid var(--green);
-  border-radius: 10px;
-  color: var(--green);
-  font-weight: 600;
-  cursor: pointer;
-}
 .swatches {
   display: flex;
   flex-wrap: wrap;
@@ -278,4 +269,104 @@ button.swatch.selected {
 }
 .actions button.secondary {
   margin-top: 0;
+}
+
+/* ---- Headshot buttons + cropper ---- */
+.photo-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.photo-actions button.secondary {
+  margin-top: 0;
+}
+.cropper {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: #111;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  overflow-y: auto;
+}
+.cropper h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.crop-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #000;
+  /* Lets our pointer handlers own touch gestures instead of the browser scrolling/zooming. */
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  flex: none;
+}
+.crop-stage:active {
+  cursor: grabbing;
+}
+.crop-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+.crop-mask {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgb(255 255 255 / 0.9);
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.55);
+  pointer-events: none;
+}
+.zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+}
+.zoom-row input[type="range"] {
+  flex: 1;
+  padding: 0;
+  accent-color: #7cc48c;
+}
+button.zoom-step {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.15);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+button.zoom-step:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.25);
+}
+.crop-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgb(255 255 255 / 0.65);
+}
+.crop-error {
+  color: #ff8a80;
+}
+.cropper .actions {
+  width: 100%;
+  max-width: 320px;
+  justify-content: space-between;
+}
+.cropper .actions button.secondary {
+  color: #fff;
+  border-color: rgb(255 255 255 / 0.5);
 }

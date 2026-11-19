@@ -1,9 +1,9 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import type { User } from "../../shared/types";
 import { api } from "../api";
 import { COLORS } from "../colors";
-import { prepareHeadshot } from "../image";
 import Avatar from "./Avatar";
+import PhotoCropper from "./PhotoCropper";
 
 interface Props {
   /** The user being edited, or undefined when adding a new one. */
@@ -18,30 +18,37 @@ export default function UserForm({ user, defaultColor, onSaved, onCancel }: Prop
   const [color, setColor] = useState(user?.color ?? defaultColor);
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  // The picked photo waiting to be positioned in the cropper.
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const cameraInput = useRef<HTMLInputElement>(null);
+  const libraryInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
+    // While the cropper is open, Escape belongs to it.
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !cropFile && onCancel();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
+  }, [onCancel, cropFile]);
 
-  async function onFile(e: ChangeEvent<HTMLInputElement>) {
+  function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    // Clear the input so picking the same photo again still fires a change.
+    e.target.value = "";
     if (!file) return;
     setError("");
-    try {
-      const blob = await prepareHeadshot(file);
-      setPhoto(blob);
-      setPreview(URL.createObjectURL(blob));
-    } catch (err) {
-      setError((err as Error).message);
-    }
+    setCropFile(file);
+  }
+
+  function onCropped(blob: Blob) {
+    setPhoto(blob);
+    setPreview(URL.createObjectURL(blob));
+    setCropFile(null);
   }
 
   async function submit(e: FormEvent) {
@@ -60,6 +67,7 @@ export default function UserForm({ user, defaultColor, onSaved, onCancel }: Prop
   }
 
   return (
+    <>
     <div className="overlay" onClick={onCancel}>
       <form
         className="sheet"
@@ -78,10 +86,32 @@ export default function UserForm({ user, defaultColor, onSaved, onCancel }: Prop
             photoUrl={preview ?? user?.photoUrl ?? null}
             size={88}
           />
-          <label className="file-button">
-            {preview || user?.photoUrl ? "Change headshot" : "Upload headshot"}
-            <input type="file" accept="image/*" onChange={onFile} hidden />
-          </label>
+          <div className="photo-actions">
+            <button
+              type="button"
+              className="secondary small"
+              onClick={() => cameraInput.current?.click()}
+            >
+              Take photo
+            </button>
+            <button
+              type="button"
+              className="secondary small"
+              onClick={() => libraryInput.current?.click()}
+            >
+              {preview || user?.photoUrl ? "Choose another" : "Choose photo"}
+            </button>
+          </div>
+          {/* `capture` opens the front camera on phones; other devices show a file picker. */}
+          <input
+            ref={cameraInput}
+            type="file"
+            accept="image/*"
+            capture="user"
+            onChange={onFile}
+            hidden
+          />
+          <input ref={libraryInput} type="file" accept="image/*" onChange={onFile} hidden />
         </div>
 
         <label htmlFor="user-name">Name</label>
@@ -138,5 +168,9 @@ export default function UserForm({ user, defaultColor, onSaved, onCancel }: Prop
         </div>
       </form>
     </div>
+    {cropFile && (
+      <PhotoCropper file={cropFile} onCancel={() => setCropFile(null)} onDone={onCropped} />
+    )}
+    </>
   );
 }
