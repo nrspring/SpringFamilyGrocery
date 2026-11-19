@@ -147,7 +147,8 @@ export default function ItemForm({ item, items, user, onDelete, blocked, onSaved
             id="item-name"
             value={name}
             maxLength={80}
-            autoFocus
+            // A new item starts typing right away; editing one shouldn't pop the keyboard up over it.
+            autoFocus={!item}
             onChange={(e) => setName(e.target.value)}
           />
 

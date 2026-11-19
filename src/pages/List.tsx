@@ -43,8 +43,11 @@ export default function List() {
     <section>
       <div className="section-head">
         <h1>List</h1>
-        {onList.length > 0 && <span className="muted">{onList.length} to get</span>}
+        <Link to="/items" className="button-link">
+          Add items
+        </Link>
       </div>
+      {onList.length > 0 && <p className="muted list-count">{onList.length} to get</p>}
 
       {error && (
         <p className="error" role="alert">

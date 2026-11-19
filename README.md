@@ -6,7 +6,7 @@ Family grocery coordination site. Live at **https://groceries.thespringfamily.co
 - **API:** Cloudflare Worker (`worker/index.ts`), served from the same domain under `/api`
 - **Login:** one shared family password (`APP_PASSWORD` secret) that sets an HttpOnly 30-day session cookie, signed with a separate `SESSION_SECRET`
 
-Currently a login, an "under construction" home page, and **Items** and **Users** screens.
+After login the app opens on the shared shopping **List**, with **Items** and **Users** screens alongside it.
 
 ## Users
 

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import type { Session, User } from "../shared/types";
 import Avatar from "./components/Avatar";
-import Home from "./pages/Home";
 import Items from "./pages/Items";
 import List from "./pages/List";
 import Login from "./pages/Login";
@@ -93,8 +92,8 @@ export default function App() {
       </header>
       <main className="content">
         <Routes>
-          <Route path="/" element={<Home user={user} />} />
-          <Route path="/list" element={<List />} />
+          <Route path="/" element={<List />} />
+          <Route path="/list" element={<Navigate to="/" replace />} />
           <Route path="/items" element={<Items user={user} />} />
           <Route path="/users" element={<Users />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -103,10 +102,6 @@ export default function App() {
       {/* Pinned to the bottom so it stays reachable however long the page gets. */}
       <nav className="tabbar" aria-label="Main">
         <NavLink to="/" end>
-          <span aria-hidden>🏠</span>
-          Home
-        </NavLink>
-        <NavLink to="/list">
           <span aria-hidden>📝</span>
           List
         </NavLink>

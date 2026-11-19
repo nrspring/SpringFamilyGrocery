@@ -150,9 +150,6 @@ button.secondary {
   color: var(--green-dark);
   box-shadow: inset 0 3px 0 var(--green);
 }
-.card.center {
-  margin: 48px auto;
-}
 button.small {
   padding: 6px 12px;
   font-size: 0.9rem;
@@ -622,8 +619,19 @@ button.who:hover:not(:disabled) {
 button.who:not(:has(.avatar)) {
   padding: 6px 12px;
 }
-.subtitle {
-  margin: -8px 0 0;
+/* A link that looks like the primary button, e.g. "Add items" on the List page. */
+a.button-link {
+  display: inline-block;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--green);
+  color: #fff;
   font-weight: 600;
-  color: var(--muted);
+  text-decoration: none;
+}
+a.button-link:hover {
+  background: var(--green-dark);
+}
+.list-count {
+  margin: -8px 0 14px;
 }
