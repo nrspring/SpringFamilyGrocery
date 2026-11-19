@@ -64,6 +64,11 @@ function toItemForm(input: ItemInput) {
 }
 
 export const api = {
+  /** Puts the item on the shared shopping list (as the person this device chose). */
+  addToList: (itemId: string) => request<Item>(`/api/list/${itemId}`, { method: "PUT" }),
+
+  removeFromList: (itemId: string) => request<Item>(`/api/list/${itemId}`, { method: "DELETE" }),
+
   listItems: () => request<Item[]>("/api/items"),
 
   createItem: (input: ItemInput) =>

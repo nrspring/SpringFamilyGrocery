@@ -10,6 +10,14 @@ export interface User {
   updatedAt: string;
 }
 
+/** Just enough of a user to show who they are. */
+export interface UserRef {
+  id: string;
+  name: string;
+  color: string;
+  photoUrl: string | null;
+}
+
 export interface Item {
   /** Permanent unique identifier (UUID). Safe to store as a foreign key. */
   id: string;
@@ -17,7 +25,9 @@ export interface Item {
   description: string;
   photoUrl: string | null;
   /** The family member who added it; null if the person who did is unknown. */
-  addedBy: { id: string; name: string; color: string; photoUrl: string | null } | null;
+  addedBy: UserRef | null;
+  /** Set when the item is on the shared shopping list; null when it isn't. */
+  list: { addedBy: UserRef | null; addedAt: string } | null;
   /** Ids of items that are acceptable substitutes for this one. */
   alternativeIds: string[];
   createdAt: string;

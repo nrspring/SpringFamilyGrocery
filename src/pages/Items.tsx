@@ -9,6 +9,7 @@ export default function Items({ user }: { user: User | null }) {
   const [items, setItems] = useState<Item[] | null>(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [starBusyId, setStarBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Item | "new" | null>(null);
   const [deleting, setDeleting] = useState<{
     item: Item;
@@ -41,6 +42,20 @@ export default function Items({ user }: { user: User | null }) {
     });
   }, [items, search]);
 
+  async function toggleList(item: Item) {
+    if (starBusyId === item.id) return;
+    setStarBusyId(item.id);
+    setError("");
+    try {
+      const updated = item.list ? await api.removeFromList(item.id) : await api.addToList(item.id);
+      setItems((all) => all?.map((i) => (i.id === updated.id ? updated : i)) ?? all);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setStarBusyId(null);
+    }
+  }
+
   /** Items that list `item` as an acceptable alternative, as far as we know right now. */
   function usedBy(item: Item) {
     return items?.filter((i) => i.alternativeIds.includes(item.id)).map((i) => i.name) ?? [];
@@ -59,6 +74,7 @@ export default function Items({ user }: { user: User | null }) {
       // Only override the server's warning once the person has seen it.
       await api.deleteItem(item.id, warned.length > 0);
       setDeleting(null);
+      setEditing(null);
       await load();
     } catch (e) {
       if (e instanceof ApiError && e.status === 409 && Array.isArray(e.body.usedBy)) {
@@ -107,7 +123,22 @@ export default function Items({ user }: { user: User | null }) {
 
       <ul className="user-list">
         {visible?.map((i) => (
-          <li key={i.id} className="user-row item-row">
+          // Tapping anywhere on the row toggles it; the star is the keyboard- and screen-reader-friendly
+          // control for the same thing (its click bubbles up to the row), and Edit opts out.
+          <li
+            key={i.id}
+            className={`user-row item-row selectable${i.list ? " selected" : ""}`}
+            onClick={() => toggleList(i)}
+          >
+            <button
+              type="button"
+              className={`star${i.list ? " on" : ""}`}
+              aria-pressed={!!i.list}
+              aria-label={i.list ? `Remove ${i.name} from the list` : `Add ${i.name} to the list`}
+              title={i.list ? "On the list. Tap to remove" : "Add to the list"}
+            >
+              {i.list ? "★" : "☆"}
+            </button>
             <ItemThumb name={i.name} photoUrl={i.photoUrl} />
             <div className="item-info">
               <div className="item-title">
@@ -133,17 +164,41 @@ export default function Items({ user }: { user: User | null }) {
               )}
             </div>
             <div className="row-actions">
-              <button type="button" className="secondary small" onClick={() => setEditing(i)}>
+              <button
+                type="button"
+                className="secondary small"
+                onClick={(e) => {
+                  // Don't also toggle the row.
+                  e.stopPropagation();
+                  setEditing(i);
+                }}
+              >
                 Edit
-              </button>
-              <button type="button" className="secondary small danger" onClick={() => askDelete(i)}>
-                Delete
               </button>
             </div>
           </li>
         ))}
       </ul>
 
+      {editing && items && (
+        <ItemForm
+          // Remount per item so form state never leaks between edits.
+          key={editing === "new" ? "new" : editing.id}
+          item={editing === "new" ? undefined : editing}
+          items={items}
+          user={user}
+          // While the delete confirmation is up on top, the form behind it stays put.
+          blocked={deleting !== null}
+          onDelete={editing === "new" ? undefined : () => askDelete(editing)}
+          onCancel={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+        />
+      )}
+
+      {/* After the form in the page so it stacks on top when opened from it. */}
       {deleting && (
         <div className="overlay" onClick={() => !deleting.busy && setDeleting(null)}>
           <div
@@ -183,21 +238,6 @@ export default function Items({ user }: { user: User | null }) {
             </div>
           </div>
         </div>
-      )}
-
-      {editing && items && (
-        <ItemForm
-          // Remount per item so form state never leaks between edits.
-          key={editing === "new" ? "new" : editing.id}
-          item={editing === "new" ? undefined : editing}
-          items={items}
-          user={user}
-          onCancel={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null);
-            load();
-          }}
-        />
       )}
     </section>
   );

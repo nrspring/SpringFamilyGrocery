@@ -27,6 +27,16 @@ Acceptable alternatives live in `item_alternatives` and are **directional**: if 
 is an acceptable substitute for Milk, but Milk is not automatically one for Oat milk. The API takes them as a
 JSON array of item ids in the `alternatives` form field and replaces the whole list.
 
+## List
+
+One **shared** shopping list for the whole household (the `list_entries` table: one row per item, with who
+starred it and when). Tap anywhere on an item on the Items page (except its Edit button) to put it on the list,
+and again to take it off; selected items get a ★ and a gold outline. Items are deleted from inside the Edit
+sheet. The **List** page shows
+everything starred and lets anyone remove an item. Each item from `GET /api/items` carries `list`
+(`{ addedBy, addedAt }` or `null`), and `PUT` / `DELETE /api/list/:itemId` add and remove (both are harmless to
+repeat). Adding needs a chosen user, like adding an item. Deleting an item also takes it off the list.
+
 ## Who are you?
 
 After the family password, a device that doesn't know who is using it shows a "Who are you?" picker of active

@@ -2,6 +2,7 @@ import { clearSessionCookie, isAuthenticated, safeEqual, sessionCookie } from ".
 import type { Env } from "./env";
 import { json } from "./http";
 import { handleItems } from "./items";
+import { handleList } from "./list";
 import { clearUserCookie, currentUser, handleMe } from "./me";
 import { handleUsers } from "./users";
 
@@ -45,7 +46,8 @@ async function handleApi(request: Request, env: Env, path: string) {
   const response =
     (await handleMe(request, env, path)) ??
     (await handleUsers(request, env, path)) ??
-    (await handleItems(request, env, path));
+    (await handleItems(request, env, path)) ??
+    (await handleList(request, env, path));
   if (response) return response;
 
   return json({ error: "Not found" }, 404);

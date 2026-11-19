@@ -11,11 +11,15 @@ interface Props {
   items: Item[];
   /** Who this device is; they become the item's "added by" when it is new. */
   user: User | null;
+  /** Present when editing: asks the parent to confirm and delete this item. */
+  onDelete?: () => void;
+  /** True while something is open on top of the form, so Escape should leave the form alone. */
+  blocked?: boolean;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-export default function ItemForm({ item, items, user, onSaved, onCancel }: Props) {
+export default function ItemForm({ item, items, user, onDelete, blocked, onSaved, onCancel }: Props) {
   const [name, setName] = useState(item?.name ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [alternativeIds, setAlternativeIds] = useState<Set<string>>(new Set(item?.alternativeIds));
@@ -34,11 +38,11 @@ export default function ItemForm({ item, items, user, onSaved, onCancel }: Props
   }, [preview]);
 
   useEffect(() => {
-    // While the cropper is open, Escape belongs to it.
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !cropFile && onCancel();
+    // While the cropper or the delete confirmation is open, Escape belongs to it.
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !cropFile && !blocked && onCancel();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel, cropFile]);
+  }, [onCancel, cropFile, blocked]);
 
   // Any other item can be picked.
   const candidates = useMemo(() => {
@@ -203,6 +207,11 @@ export default function ItemForm({ item, items, user, onSaved, onCancel }: Props
           )}
 
           <div className="actions">
+            {onDelete && (
+              <button type="button" className="secondary danger push-left" disabled={busy} onClick={onDelete}>
+                Delete
+              </button>
+            )}
             <button type="button" className="secondary" onClick={onCancel}>
               Cancel
             </button>

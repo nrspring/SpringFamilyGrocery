@@ -4,6 +4,7 @@ import type { Session, User } from "../shared/types";
 import Avatar from "./components/Avatar";
 import Home from "./pages/Home";
 import Items from "./pages/Items";
+import List from "./pages/List";
 import Login from "./pages/Login";
 import Users from "./pages/Users";
 import WhoAreYou from "./pages/WhoAreYou";
@@ -93,6 +94,7 @@ export default function App() {
       <main className="content">
         <Routes>
           <Route path="/" element={<Home user={user} />} />
+          <Route path="/list" element={<List />} />
           <Route path="/items" element={<Items user={user} />} />
           <Route path="/users" element={<Users />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -103,6 +105,10 @@ export default function App() {
         <NavLink to="/" end>
           <span aria-hidden>🏠</span>
           Home
+        </NavLink>
+        <NavLink to="/list">
+          <span aria-hidden>📝</span>
+          List
         </NavLink>
         <NavLink to="/items">
           <span aria-hidden>🛒</span>

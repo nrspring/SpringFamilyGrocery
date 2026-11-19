@@ -459,6 +459,22 @@ button.danger {
   color: #b3261e;
   border-color: #b3261e;
 }
+.actions .push-left {
+  margin-right: auto;
+}
+.item-row.selectable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.item-row.selectable:hover {
+  background: #fbfaf5;
+}
+.item-row.selected,
+.item-row.selected:hover {
+  background: #fff8e1;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.05), inset 0 0 0 2px #f0c24b;
+}
 button.danger-fill {
   background: #b3261e;
 }
@@ -472,6 +488,28 @@ button.danger-fill:hover:not(:disabled) {
   background: #fff4e0;
   color: #7a4b00;
   line-height: 1.4;
+}
+.user-row.item-row {
+  gap: 8px;
+}
+button.star {
+  flex: none;
+  width: 32px;
+  height: 36px;
+  padding: 0;
+  margin: 10px -2px 0 -4px;
+  border-radius: 50%;
+  background: transparent;
+  color: #9aa39c;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+button.star:hover:not(:disabled) {
+  background: var(--bg);
+  color: #c58a00;
+}
+button.star.on {
+  color: #e0a100;
 }
 .search-row {
   margin-bottom: 14px;

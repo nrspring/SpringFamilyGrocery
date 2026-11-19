@@ -15,6 +15,12 @@ interface ItemRow {
   adder_name: string | null;
   adder_color: string | null;
   adder_photo_key: string | null;
+  /** Null unless the item is on the shopping list. */
+  listed_at: string | null;
+  lister_id: string | null;
+  lister_name: string | null;
+  lister_color: string | null;
+  lister_photo_key: string | null;
 }
 
 const MAX_NAME_CHARS = 80;
@@ -23,9 +29,20 @@ const MAX_ALTERNATIVES = 50;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const SELECT_ITEMS = `
-  SELECT i.*, u.name AS adder_name, u.color AS adder_color, u.photo_key AS adder_photo_key
+  SELECT i.*,
+         u.name AS adder_name, u.color AS adder_color, u.photo_key AS adder_photo_key,
+         l.created_at AS listed_at,
+         lu.id AS lister_id, lu.name AS lister_name, lu.color AS lister_color,
+         lu.photo_key AS lister_photo_key
     FROM items i
-    LEFT JOIN users u ON u.id = i.added_by`;
+    LEFT JOIN users u ON u.id = i.added_by
+    LEFT JOIN list_entries l ON l.item_id = i.id
+    LEFT JOIN users lu ON lu.id = l.added_by`;
+
+const userRef = (id: string | null, name: string | null, color: string | null, photoKey: string | null) =>
+  id && name !== null
+    ? { id, name, color: color ?? "#888888", photoUrl: photoKey ? `/api/images/${photoKey}` : null }
+    : null;
 
 function toItem(row: ItemRow, alternativeIds: string[]): Item {
   return {
@@ -33,15 +50,13 @@ function toItem(row: ItemRow, alternativeIds: string[]): Item {
     name: row.name,
     description: row.description,
     photoUrl: row.photo_key ? `/api/images/${row.photo_key}` : null,
-    addedBy:
-      row.added_by && row.adder_name !== null
-        ? {
-            id: row.added_by,
-            name: row.adder_name,
-            color: row.adder_color ?? "#888888",
-            photoUrl: row.adder_photo_key ? `/api/images/${row.adder_photo_key}` : null,
-          }
-        : null,
+    addedBy: userRef(row.added_by, row.adder_name, row.adder_color, row.adder_photo_key),
+    list: row.listed_at
+      ? {
+          addedBy: userRef(row.lister_id, row.lister_name, row.lister_color, row.lister_photo_key),
+          addedAt: row.listed_at,
+        }
+      : null,
     alternativeIds,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -65,7 +80,7 @@ async function alternativesFor(env: Env, itemId?: string) {
 const getRow = (env: Env, id: string) =>
   env.DB.prepare(`${SELECT_ITEMS} WHERE i.id = ?`).bind(id).first<ItemRow>();
 
-async function getItem(env: Env, id: string) {
+export async function getItem(env: Env, id: string) {
   const row = await getRow(env, id);
   if (!row) return null;
   return toItem(row, (await alternativesFor(env, id)).get(id) ?? []);
@@ -223,6 +238,7 @@ async function deleteItem(request: Request, env: Env, id: string) {
 
   await env.DB.batch([
     env.DB.prepare("DELETE FROM item_alternatives WHERE item_id = ? OR alternative_id = ?").bind(id, id),
+    env.DB.prepare("DELETE FROM list_entries WHERE item_id = ?").bind(id),
     env.DB.prepare("DELETE FROM items WHERE id = ?").bind(id),
   ]);
   if (row.photo_key) await env.PHOTOS.delete(row.photo_key);
