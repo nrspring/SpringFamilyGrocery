@@ -53,16 +53,21 @@ function validColor(value: unknown) {
 
 // Each upload gets its own key, so a replaced headshot is never served stale
 // from cache and old keys can be deleted safely.
-async function storePhoto(env: Env, file: File | string | null, userId: string) {
+export async function storePhoto(
+  env: Env,
+  file: File | string | null,
+  ownerId: string,
+  label = "Headshot",
+) {
   if (!(file instanceof File) || file.size === 0) return null;
-  if (!file.type.startsWith("image/")) throw new Error("Headshot must be an image");
-  if (file.size > MAX_PHOTO_BYTES) throw new Error("Headshot is too large");
-  const key = `${userId}/${crypto.randomUUID()}.jpg`;
+  if (!file.type.startsWith("image/")) throw new Error(`${label} must be an image`);
+  if (file.size > MAX_PHOTO_BYTES) throw new Error(`${label} is too large`);
+  const key = `${ownerId}/${crypto.randomUUID()}.jpg`;
   await env.PHOTOS.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
   return key;
 }
 
-async function readForm(request: Request) {
+export async function readForm(request: Request) {
   try {
     return await request.formData();
   } catch {

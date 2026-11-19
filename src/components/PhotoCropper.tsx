@@ -47,11 +47,13 @@ const mid = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y)
 
 interface Props {
   file: File;
+  /** The outline shown over the photo: a circle for people, a rounded square for things. */
+  shape?: "circle" | "square";
   onCancel: () => void;
   onDone: (blob: Blob) => void;
 }
 
-export default function PhotoCropper({ file, onCancel, onDone }: Props) {
+export default function PhotoCropper({ file, shape = "circle", onCancel, onDone }: Props) {
   const [url, setUrl] = useState("");
   const [nat, setNat] = useState<Size | null>(null);
   const [view, setView] = useState<View>({ z: 1, x: 0, y: 0 });
@@ -197,7 +199,7 @@ export default function PhotoCropper({ file, onCancel, onDone }: Props) {
             onError={() => setError("Couldn't read that photo. Try another one?")}
           />
         )}
-        <div className="crop-mask" />
+        <div className={`crop-mask${shape === "square" ? " square" : ""}`} />
       </div>
 
       <div className="zoom-row">

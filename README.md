@@ -6,7 +6,7 @@ Family grocery coordination site. Live at **https://groceries.thespringfamily.co
 - **API:** Cloudflare Worker (`worker/index.ts`), served from the same domain under `/api`
 - **Login:** one shared family password (`APP_PASSWORD` secret) that sets an HttpOnly 30-day session cookie, signed with a separate `SESSION_SECRET`
 
-Currently a login, an "under construction" home page, and a **Users** screen.
+Currently a login, an "under construction" home page, and **Items** and **Users** screens.
 
 ## Users
 
@@ -14,6 +14,16 @@ Family members live in the D1 `users` table. Each has a name, a color, an option
 `active` flag. Users can be added, edited and **disabled, never deleted** (the API has no DELETE route and a
 database trigger blocks it). The `id` is a UUID generated once at creation and never changes, so other tables
 can safely reference it.
+
+## Items
+
+Things the family buys, in the D1 `items` table: name, description, an optional photo (R2, shared image route
+with users), who added it, and an `active` flag. Like users, items are **disabled, never deleted**. The person
+who added an item is whoever the device chose in "Who are you?", so adding needs a chosen user.
+
+Acceptable alternatives live in `item_alternatives` and are **directional**: if Milk lists Oat milk, Oat milk
+is an acceptable substitute for Milk, but Milk is not automatically one for Oat milk. The API takes them as a
+JSON array of item ids in the `alternatives` form field and replaces the whole list.
 
 ## Who are you?
 

@@ -3,6 +3,7 @@ import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import type { Session, User } from "../shared/types";
 import Avatar from "./components/Avatar";
 import Home from "./pages/Home";
+import Items from "./pages/Items";
 import Login from "./pages/Login";
 import Users from "./pages/Users";
 import WhoAreYou from "./pages/WhoAreYou";
@@ -74,6 +75,7 @@ export default function App() {
           <NavLink to="/" end>
             Home
           </NavLink>
+          <NavLink to="/items">Items</NavLink>
           <NavLink to="/users">Users</NavLink>
         </nav>
         <button
@@ -98,6 +100,7 @@ export default function App() {
       <main className="content">
         <Routes>
           <Route path="/" element={<Home user={user} />} />
+          <Route path="/items" element={<Items user={user} />} />
           <Route path="/users" element={<Users />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

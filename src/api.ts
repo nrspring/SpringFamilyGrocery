@@ -1,4 +1,4 @@
-import type { User } from "../shared/types";
+import type { Item, User } from "../shared/types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, init);
@@ -33,7 +33,35 @@ function toForm(input: UserInput) {
   return form;
 }
 
+export interface ItemInput {
+  name?: string;
+  description?: string;
+  active?: boolean;
+  /** Replaces the whole list of acceptable alternatives. Omit to keep it. */
+  alternativeIds?: string[];
+  /** A new photo. Omit to keep the current one. */
+  photo?: Blob | null;
+}
+
+function toItemForm(input: ItemInput) {
+  const form = new FormData();
+  if (input.name !== undefined) form.set("name", input.name);
+  if (input.description !== undefined) form.set("description", input.description);
+  if (input.active !== undefined) form.set("active", String(input.active));
+  if (input.alternativeIds !== undefined) form.set("alternatives", JSON.stringify(input.alternativeIds));
+  if (input.photo) form.set("photo", input.photo, "item.jpg");
+  return form;
+}
+
 export const api = {
+  listItems: () => request<Item[]>("/api/items"),
+
+  createItem: (input: ItemInput) =>
+    request<Item>("/api/items", { method: "POST", body: toItemForm(input) }),
+
+  updateItem: (id: string, input: ItemInput) =>
+    request<Item>(`/api/items/${id}`, { method: "PATCH", body: toItemForm(input) }),
+
   listUsers: () => request<User[]>("/api/users"),
 
   /** Remembers on this device who is using it. */
