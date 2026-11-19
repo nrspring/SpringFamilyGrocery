@@ -370,3 +370,62 @@ button.zoom-step:hover:not(:disabled) {
   color: #fff;
   border-color: rgb(255 255 255 / 0.5);
 }
+
+/* ---- Who are you? picker + current user ---- */
+.card.picker {
+  max-width: 460px;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 12px;
+  margin: 8px 0;
+}
+button.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: 16px;
+}
+button.tile:hover:not(:disabled) {
+  background: #e9e5d6;
+}
+button.tile span:last-child {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+button.link {
+  background: none;
+  color: var(--green);
+  padding: 6px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+button.link:hover:not(:disabled) {
+  background: none;
+  color: var(--green-dark);
+}
+button.who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px 3px 3px;
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: 999px;
+}
+button.who:hover:not(:disabled) {
+  background: #e9e5d6;
+}
+button.who:not(:has(.avatar)) {
+  padding: 6px 12px;
+}
+.subtitle {
+  margin: -8px 0 0;
+  font-weight: 600;
+  color: var(--muted);
+}

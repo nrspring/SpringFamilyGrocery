@@ -2,7 +2,7 @@ import type { User } from "../shared/types";
 import type { Env } from "./env";
 import { error, json } from "./http";
 
-interface UserRow {
+export interface UserRow {
   id: string;
   name: string;
   color: string;
@@ -16,7 +16,7 @@ const MAX_NAME_CHARS = 50;
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 const COLOR_RE = /^#[0-9a-f]{6}$/i;
 
-function toUser(row: UserRow): User {
+export function toUser(row: UserRow): User {
   return {
     id: row.id,
     name: row.name,
@@ -28,7 +28,7 @@ function toUser(row: UserRow): User {
   };
 }
 
-const getRow = (env: Env, id: string) =>
+export const getRow = (env: Env, id: string) =>
   env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(id).first<UserRow>();
 
 async function listUsers(env: Env) {

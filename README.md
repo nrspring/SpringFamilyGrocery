@@ -15,6 +15,13 @@ Family members live in the D1 `users` table. Each has a name, a color, an option
 database trigger blocks it). The `id` is a UUID generated once at creation and never changes, so other tables
 can safely reference it.
 
+## Who are you?
+
+After the family password, a device that doesn't know who is using it shows a "Who are you?" picker of active
+users. The choice is stored in a signed `sfg_user` cookie (1 year), separate from the 30-day login, so a phone
+keeps its person across re-logins. If the chosen user is later disabled, the device asks again. Signing out
+forgets the choice. `GET /api/session` returns `{ authenticated, user }`, and `POST /api/me` sets the user.
+
 ## Local development
 
 ```bash

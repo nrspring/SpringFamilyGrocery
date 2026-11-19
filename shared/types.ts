@@ -9,3 +9,9 @@ export interface User {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Session {
+  authenticated: boolean;
+  /** Who this device said they are, or null if not chosen yet (or they were disabled). */
+  user: User | null;
+}

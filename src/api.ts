@@ -36,6 +36,14 @@ function toForm(input: UserInput) {
 export const api = {
   listUsers: () => request<User[]>("/api/users"),
 
+  /** Remembers on this device who is using it. */
+  chooseUser: (userId: string) =>
+    request<User>("/api/me", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId }),
+    }),
+
   createUser: (input: UserInput) =>
     request<User>("/api/users", { method: "POST", body: toForm(input) }),
 
