@@ -18,7 +18,6 @@ export interface Item {
   photoUrl: string | null;
   /** The family member who added it; null if the person who did is unknown. */
   addedBy: { id: string; name: string; color: string; photoUrl: string | null } | null;
-  active: boolean;
   /** Ids of items that are acceptable substitutes for this one. */
   alternativeIds: string[];
   createdAt: string;

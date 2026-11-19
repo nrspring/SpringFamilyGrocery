@@ -18,8 +18,10 @@ can safely reference it.
 ## Items
 
 Things the family buys, in the D1 `items` table: name, description, an optional photo (R2, shared image route
-with users), who added it, and an `active` flag. Like users, items are **disabled, never deleted**. The person
-who added an item is whoever the device chose in "Who are you?", so adding needs a chosen user.
+with users), and who added it. Unlike users, items have no `active` flag and **can be deleted** (`DELETE /api/items/:id`,
+which also removes the photo). If other items list it as an acceptable alternative the API answers `409` with
+those items until the call is repeated with `?force=true`, and the screen shows that as a warning first. The
+person who added an item is whoever the device chose in "Who are you?", so adding needs a chosen user.
 
 Acceptable alternatives live in `item_alternatives` and are **directional**: if Milk lists Oat milk, Oat milk
 is an acceptable substitute for Milk, but Milk is not automatically one for Oat milk. The API takes them as a

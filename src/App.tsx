@@ -71,13 +71,6 @@ export default function App() {
     <>
       <header className="topbar">
         <span className="brand">🛒 House Groceries</span>
-        <nav>
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-          <NavLink to="/items">Items</NavLink>
-          <NavLink to="/users">Users</NavLink>
-        </nav>
         <button
           type="button"
           className="who"
@@ -105,6 +98,21 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      {/* Pinned to the bottom so it stays reachable however long the page gets. */}
+      <nav className="tabbar" aria-label="Main">
+        <NavLink to="/" end>
+          <span aria-hidden>🏠</span>
+          Home
+        </NavLink>
+        <NavLink to="/items">
+          <span aria-hidden>🛒</span>
+          Items
+        </NavLink>
+        <NavLink to="/users">
+          <span aria-hidden>👥</span>
+          Users
+        </NavLink>
+      </nav>
     </>
   );
 }

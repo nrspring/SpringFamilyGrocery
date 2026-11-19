@@ -10,7 +10,6 @@ interface ItemRow {
   description: string;
   photo_key: string | null;
   added_by: string | null;
-  active: number;
   created_at: string;
   updated_at: string;
   adder_name: string | null;
@@ -43,7 +42,6 @@ function toItem(row: ItemRow, alternativeIds: string[]): Item {
             photoUrl: row.adder_photo_key ? `/api/images/${row.adder_photo_key}` : null,
           }
         : null,
-    active: row.active === 1,
     alternativeIds,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -75,7 +73,7 @@ async function getItem(env: Env, id: string) {
 
 async function listItems(env: Env) {
   const { results } = await env.DB.prepare(
-    `${SELECT_ITEMS} ORDER BY i.active DESC, i.name COLLATE NOCASE`,
+    `${SELECT_ITEMS} ORDER BY i.name COLLATE NOCASE`,
   ).all<ItemRow>();
   const alternatives = await alternativesFor(env);
   return json(results.map((row) => toItem(row, alternatives.get(row.id) ?? [])));
@@ -169,17 +167,11 @@ async function updateItem(request: Request, env: Env, id: string) {
 
   let name = existing.name;
   let description = existing.description;
-  let active = existing.active;
   let alternatives: string[] | null = null;
   let photoKey = existing.photo_key;
   try {
     if (form.has("name")) name = validName(form.get("name"));
     if (form.has("description")) description = validDescription(form.get("description"));
-    if (form.has("active")) {
-      const value = form.get("active");
-      if (value !== "true" && value !== "false") throw new Error("Active must be true or false");
-      active = value === "true" ? 1 : 0;
-    }
     if (form.has("alternatives")) alternatives = await validAlternatives(env, form.get("alternatives"), id);
     photoKey = (await storePhoto(env, form.get("photo"), id, "Photo")) ?? photoKey;
   } catch (e) {
@@ -189,10 +181,10 @@ async function updateItem(request: Request, env: Env, id: string) {
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE items
-          SET name = ?, description = ?, active = ?, photo_key = ?,
+          SET name = ?, description = ?, photo_key = ?,
               updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
         WHERE id = ?`,
-    ).bind(name, description, active, photoKey, id),
+    ).bind(name, description, photoKey, id),
     ...(alternatives
       ? [
           env.DB.prepare("DELETE FROM item_alternatives WHERE item_id = ?").bind(id),
@@ -204,6 +196,38 @@ async function updateItem(request: Request, env: Env, id: string) {
   if (existing.photo_key && photoKey !== existing.photo_key) await env.PHOTOS.delete(existing.photo_key);
 
   return json((await getItem(env, id))!);
+}
+
+/**
+ * Deletes an item. If other items list it as an acceptable alternative, answers
+ * 409 with those items unless the caller confirms with `?force=true`; the links
+ * are removed along with the item.
+ */
+async function deleteItem(request: Request, env: Env, id: string) {
+  const row = await getRow(env, id);
+  if (!row) return error("Item not found", 404);
+
+  const { results: usedBy } = await env.DB.prepare(
+    `SELECT i.id, i.name
+       FROM item_alternatives a JOIN items i ON i.id = a.item_id
+      WHERE a.alternative_id = ?
+      ORDER BY i.name COLLATE NOCASE`,
+  )
+    .bind(id)
+    .all<{ id: string; name: string }>();
+
+  const force = new URL(request.url).searchParams.get("force") === "true";
+  if (usedBy.length > 0 && !force) {
+    return json({ error: `${row.name} is an acceptable alternative for other items`, usedBy }, 409);
+  }
+
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM item_alternatives WHERE item_id = ? OR alternative_id = ?").bind(id, id),
+    env.DB.prepare("DELETE FROM items WHERE id = ?").bind(id),
+  ]);
+  if (row.photo_key) await env.PHOTOS.delete(row.photo_key);
+
+  return new Response(null, { status: 204 });
 }
 
 const methodNotAllowed = () => error("Method not allowed", 405);
@@ -226,7 +250,7 @@ export async function handleItems(request: Request, env: Env, path: string) {
       return item ? json(item) : error("Item not found", 404);
     }
     if (method === "PATCH") return updateItem(request, env, id);
-    // There is deliberately no DELETE: items are disabled, not removed.
+    if (method === "DELETE") return deleteItem(request, env, id);
     return methodNotAllowed();
   }
 

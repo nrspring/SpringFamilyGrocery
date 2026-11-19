@@ -18,7 +18,6 @@ interface Props {
 export default function ItemForm({ item, items, user, onSaved, onCancel }: Props) {
   const [name, setName] = useState(item?.name ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
-  const [active, setActive] = useState(item?.active ?? true);
   const [alternativeIds, setAlternativeIds] = useState<Set<string>>(new Set(item?.alternativeIds));
   const [search, setSearch] = useState("");
   const [photo, setPhoto] = useState<Blob | null>(null);
@@ -41,13 +40,11 @@ export default function ItemForm({ item, items, user, onSaved, onCancel }: Props
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel, cropFile]);
 
-  // Other active items can be picked; a disabled one only shows if it was already chosen.
+  // Any other item can be picked.
   const candidates = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return items
-      .filter((i) => i.id !== item?.id && (i.active || alternativeIds.has(i.id)))
-      .filter((i) => !q || i.name.toLowerCase().includes(q));
-  }, [items, item?.id, alternativeIds, search]);
+    return items.filter((i) => i.id !== item?.id && (!q || i.name.toLowerCase().includes(q)));
+  }, [items, item?.id, search]);
 
   function toggleAlternative(id: string) {
     setAlternativeIds((prev) => {
@@ -83,7 +80,7 @@ export default function ItemForm({ item, items, user, onSaved, onCancel }: Props
         alternativeIds: [...alternativeIds],
         photo,
       };
-      if (item) await api.updateItem(item.id, { ...input, active });
+      if (item) await api.updateItem(item.id, input);
       else await api.createItem(input);
       onSaved();
     } catch (err) {
@@ -106,6 +103,10 @@ export default function ItemForm({ item, items, user, onSaved, onCancel }: Props
           onSubmit={submit}
         >
           <h2>{item ? "Edit item" : "Add item"}</h2>
+          <p className="added-by">
+            Added by <strong>{adder?.name ?? "unknown"}</strong>
+            {!item && !user && " (choose who you are first)"}
+          </p>
 
           <div className="photo-row">
             <ItemThumb name={name} photoUrl={preview ?? item?.photoUrl ?? null} size={88} />
@@ -160,6 +161,9 @@ export default function ItemForm({ item, items, user, onSaved, onCancel }: Props
             Acceptable alternatives
             {alternativeIds.size > 0 && <span className="count"> · {alternativeIds.size} picked</span>}
           </span>
+          <p className="muted small-text">
+            Tick the items that are fine to buy <strong>instead of {name.trim() || "this item"}</strong>.
+          </p>
           {items.filter((i) => i.id !== item?.id).length === 0 ? (
             <p className="muted small-text">
               No other items yet. Add more items, then come back to link them as alternatives.
@@ -185,29 +189,11 @@ export default function ItemForm({ item, items, user, onSaved, onCancel }: Props
                       />
                       <ItemThumb name={i.name} photoUrl={i.photoUrl} size={32} />
                       <span>{i.name}</span>
-                      {!i.active && <span className="badge">Disabled</span>}
                     </label>
                   </li>
                 ))}
               </ul>
             </>
-          )}
-
-          {item && (
-            <label className="check-row">
-              <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-              <span>Active</span>
-            </label>
-          )}
-
-          <p className="user-id">
-            Added by <strong>{adder?.name ?? "unknown"}</strong>
-            {!item && !user && " (choose who you are first)"}
-          </p>
-          {item && (
-            <p className="user-id">
-              ID <code>{item.id}</code>
-            </p>
           )}
 
           {error && (
