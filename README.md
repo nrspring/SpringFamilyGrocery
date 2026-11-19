@@ -6,13 +6,21 @@ Family grocery coordination site. Live at **https://groceries.thespringfamily.co
 - **API:** Cloudflare Worker (`worker/index.ts`), served from the same domain under `/api`
 - **Login:** one shared family password (`APP_PASSWORD` secret) that sets an HttpOnly 30-day session cookie, signed with a separate `SESSION_SECRET`
 
-Currently just a login and an "under construction" page.
+Currently a login, an "under construction" home page, and a **Users** screen.
+
+## Users
+
+Family members live in the D1 `users` table. Each has a name, a color, an optional headshot (R2), and an
+`active` flag. Users can be added, edited and **disabled, never deleted** (the API has no DELETE route and a
+database trigger blocks it). The `id` is a UUID generated once at creation and never changes, so other tables
+can safely reference it.
 
 ## Local development
 
 ```bash
 npm install
-npm run dev     # http://localhost:5173
+npm run db:migrate:local   # first time, and after adding migrations
+npm run dev                # http://localhost:5173
 ```
 
 The local password and cookie secret live in `.dev.vars` (git-ignored): `APP_PASSWORD=grocery-dev` and a throwaway `SESSION_SECRET`.
@@ -21,6 +29,9 @@ The local password and cookie secret live in `.dev.vars` (git-ignored): `APP_PAS
 
 ```bash
 npx wrangler login
+npx wrangler d1 create spring-family-grocery-db     # paste the database_id into wrangler.jsonc
+npx wrangler r2 bucket create spring-family-grocery-photos
+npm run db:migrate:remote
 npx wrangler secret put APP_PASSWORD     # prompts for the real family password
 npx wrangler secret put SESSION_SECRET   # paste a long random string (see below)
 npm run deploy

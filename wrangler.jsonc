@@ -10,5 +10,15 @@
   },
   "routes": [{ "pattern": "groceries.thespringfamily.com", "custom_domain": true }],
   "workers_dev": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "spring-family-grocery-db",
+      // Placeholder: replace with the id printed by `wrangler d1 create` before deploying.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "spring-family-grocery-photos" }],
   "observability": { "enabled": true }
 }

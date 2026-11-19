@@ -1,18 +1,10 @@
-interface Env {
-  APP_PASSWORD: string;
-  SESSION_SECRET: string;
-  ASSETS: Fetcher;
-}
+import type { Env } from "./env";
+import { json } from "./http";
+import { handleUsers } from "./users";
 
 const COOKIE = "sfg_session";
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 const encoder = new TextEncoder();
-
-const json = (data: unknown, status = 200, headers?: HeadersInit) =>
-  new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8", ...headers },
-  });
 
 const toHex = (buf: ArrayBuffer) =>
   [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -89,6 +81,9 @@ async function handleApi(request: Request, env: Env, path: string) {
   // Everything below this point requires a signed-in user.
   if (!(await isAuthenticated(request, env))) return json({ error: "Unauthorized" }, 401);
 
+  const response = await handleUsers(request, env, path);
+  if (response) return response;
+
   return json({ error: "Not found" }, 404);
 }
 
@@ -104,7 +99,7 @@ export default {
         response = json({ error: "Something went wrong" }, 500);
       }
       response.headers.set("x-robots-tag", "noindex, nofollow, noarchive");
-      response.headers.set("cache-control", "no-store");
+      if (!response.headers.has("cache-control")) response.headers.set("cache-control", "no-store");
       return response;
     }
     return env.ASSETS.fetch(request);
