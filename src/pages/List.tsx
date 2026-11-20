@@ -5,24 +5,21 @@ import { api } from "../api";
 import Avatar from "../components/Avatar";
 import ItemThumb from "../components/ItemThumb";
 import LocationEditor from "../components/LocationEditor";
+import { METERS_PER_MILE, currentPosition, distanceMeters, formatDistance } from "../geo";
 import { useLongPress } from "../useLongPress";
 
-// Remembered per device, so the phone in the store stays on that store.
-const STORE_KEY = "sfg_list_store";
-
-function savedStoreId() {
-  try {
-    return localStorage.getItem(STORE_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
+/** "Find my store" only picks a store that is this close: a quarter mile. */
+const NEAR_METERS = METERS_PER_MILE / 4;
 
 export default function List() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
-  const [storeId, setStoreId] = useState(savedStoreId);
+  // Deliberately not remembered: the List always opens with no store chosen.
+  const [storeId, setStoreId] = useState("");
   const [editing, setEditing] = useState<Item | null>(null);
+  const [finding, setFinding] = useState(false);
+  // The outcome of the last "find my store" press, shown where the usual hint goes.
+  const [found, setFound] = useState<{ ok: boolean; text: string } | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const longPress = useLongPress();
@@ -46,12 +43,36 @@ export default function List() {
   // A remembered store that has since been deleted simply means none is chosen.
   const store = stores.find((s) => s.id === storeId) ?? null;
 
-  function chooseStore(id: string) {
-    setStoreId(id);
+  /** Checks where the phone is and picks the closest store if it's within a quarter mile. */
+  async function findStore() {
+    setFinding(true);
+    setFound(null);
     try {
-      localStorage.setItem(STORE_KEY, id);
-    } catch {
-      /* private window or blocked storage: the choice just won't stick */
+      const here = await currentPosition();
+      const ranked = stores
+        .flatMap((s) =>
+          s.latitude === null || s.longitude === null
+            ? []
+            : [{ store: s, meters: distanceMeters(here.latitude, here.longitude, s.latitude, s.longitude) }],
+        )
+        .sort((a, b) => a.meters - b.meters);
+
+      const nearest = ranked[0];
+      if (!nearest) {
+        setFound({ ok: false, text: "No store has a location yet. Record one on the Stores screen." });
+      } else if (nearest.meters <= NEAR_METERS) {
+        setStoreId(nearest.store.id);
+        setFound({ ok: true, text: `You're at ${nearest.store.name} (about ${formatDistance(nearest.meters)} away).` });
+      } else {
+        setFound({
+          ok: false,
+          text: `No store within ¼ mile. The nearest is ${nearest.store.name}, ${formatDistance(nearest.meters)} away.`,
+        });
+      }
+    } catch (e) {
+      setFound({ ok: false, text: (e as Error).message });
+    } finally {
+      setFinding(false);
     }
   }
 
@@ -81,19 +102,44 @@ export default function List() {
       {items && stores.length > 0 && (
         <div className="store-picker">
           <label htmlFor="list-store">Shopping at</label>
-          <select id="list-store" value={store?.id ?? ""} onChange={(e) => chooseStore(e.target.value)}>
-            <option value="">Choose a store…</option>
-            {stores.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <p className="muted small-text">
-            {store
-              ? `Press and hold an item to set where it is in ${store.name}.`
-              : "Choose a store to see where each item is."}
-          </p>
+          <div className="store-pick-row">
+            <select
+              id="list-store"
+              value={store?.id ?? ""}
+              onChange={(e) => {
+                setFound(null);
+                setStoreId(e.target.value);
+              }}
+            >
+              <option value="">Choose a store…</option>
+              {stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="secondary locate"
+              disabled={finding}
+              aria-label="Find the store I'm at"
+              title="Find the store I'm at"
+              onClick={findStore}
+            >
+              {finding ? "…" : "📍"}
+            </button>
+          </div>
+          {found ? (
+            <p className={`small-text ${found.ok ? "geo-ok" : "muted"}`} role="status">
+              {found.text}
+            </p>
+          ) : (
+            <p className="muted small-text">
+              {store
+                ? `Press and hold an item to set where it is in ${store.name}.`
+                : "Choose a store to see where each item is."}
+            </p>
+          )}
         </div>
       )}
       {items && stores.length === 0 && onList.length > 0 && (

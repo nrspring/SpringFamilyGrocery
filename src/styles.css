@@ -606,6 +606,20 @@ button.star.on {
   gap: 6px;
   margin-bottom: 22px;
 }
+.store-pick-row {
+  display: flex;
+  gap: 8px;
+}
+.store-pick-row select {
+  flex: 1;
+  min-width: 0;
+}
+button.locate {
+  flex: none;
+  margin-top: 0;
+  padding: 0 14px;
+  font-size: 1.2rem;
+}
 .store-picker select {
   font: inherit;
   padding: 12px 14px;

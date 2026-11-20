@@ -42,7 +42,10 @@ kept in `item_stores`. The item's Edit sheet has a "Where to find it" section: t
 is. The API takes it as a JSON array of `{ storeId, location }` in the `stores` form field and replaces the whole
 list; `GET /api/items` returns it as `stores` (with each store's name). Locations show on the Items screen.
 
-On the **List** screen, a "Shopping at" picker chooses the store (remembered per device in `localStorage`). Once
+On the **List** screen, a "Shopping at" picker chooses the store (not remembered: the List always opens with none chosen). The 📍
+button next to it checks the phone's GPS and selects the closest store that has a recorded location, if it is
+within a quarter mile; otherwise it leaves the choice alone and says how far the nearest one is. The distance
+is worked out in the browser (the position never goes to the server). Once
 one is chosen, every item shows where it is in that store ("Not set for…" if it hasn't been placed there).
 **Press and hold** an item (right-click on a desktop) to edit that location. That uses
 `PUT /api/items/:itemId/stores/:storeId` with `{ "location": "Aisle 12" }` (adds the item to the store if

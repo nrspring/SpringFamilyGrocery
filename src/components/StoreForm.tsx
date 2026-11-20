@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import type { Store } from "../../shared/types";
 import { api } from "../api";
+import { currentPosition } from "../geo";
 import ItemThumb from "./ItemThumb";
 import PhotoCropper from "./PhotoCropper";
 
@@ -17,12 +18,6 @@ interface Props {
 
 /** "" means no value; anything that isn't a number comes back as NaN. */
 const parseCoordinate = (text: string) => (text.trim() === "" ? null : Number(text.trim()));
-
-const GEO_ERRORS: Record<number, string> = {
-  1: "Location access is blocked. Allow it for this site in your browser settings, then try again.",
-  2: "Couldn't work out where you are. Try again somewhere with a clearer signal.",
-  3: "Finding your location took too long. Try again.",
-};
 
 export default function StoreForm({ store, onDelete, blocked, onSaved, onCancel }: Props) {
   const [name, setName] = useState(store?.name ?? "");
@@ -52,28 +47,20 @@ export default function StoreForm({ store, onDelete, blocked, onSaved, onCancel 
     return () => window.removeEventListener("keydown", onKey);
   }, [onCancel, cropFile, blocked]);
 
-  function recordLocation() {
+  async function recordLocation() {
     setGeoError("");
-    if (!("geolocation" in navigator)) {
-      setGeoError("This browser can't share your location.");
-      return;
-    }
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        // Six decimal places is about 10 cm, far more than a phone can actually tell.
-        setLatitude(pos.coords.latitude.toFixed(6));
-        setLongitude(pos.coords.longitude.toFixed(6));
-        setFix({ accuracy: Math.round(pos.coords.accuracy) });
-        setLocating(false);
-      },
-      (err) => {
-        setGeoError(GEO_ERRORS[err.code] ?? "Couldn't get your location.");
-        setLocating(false);
-      },
-      // Ask for the real GPS reading and never accept an old cached one.
-      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
-    );
+    try {
+      const coords = await currentPosition();
+      // Six decimal places is about 10 cm, far more than a phone can actually tell.
+      setLatitude(coords.latitude.toFixed(6));
+      setLongitude(coords.longitude.toFixed(6));
+      setFix({ accuracy: Math.round(coords.accuracy) });
+    } catch (e) {
+      setGeoError((e as Error).message);
+    } finally {
+      setLocating(false);
+    }
   }
 
   function onFile(e: ChangeEvent<HTMLInputElement>) {
