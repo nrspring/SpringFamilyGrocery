@@ -45,6 +45,23 @@ export default function List() {
   // A remembered store that has since been deleted simply means none is chosen.
   const store = stores.find((s) => s.id === storeId) ?? null;
 
+  // With a store chosen, list items in the order you walk it: by their place's position in the
+  // store, then by name. Items with no place there go last.
+  const sorted = useMemo(() => {
+    if (!store) return onList;
+    const rank = new Map(store.locations.map((l, i) => [l.name.toLowerCase(), i]));
+    const rankOf = (item: Item) => {
+      const place = item.stores.find((s) => s.storeId === store.id)?.location;
+      return place ? (rank.get(place.toLowerCase()) ?? Infinity) : Infinity;
+    };
+    return [...onList].sort((a, b) => {
+      const ra = rankOf(a);
+      const rb = rankOf(b);
+      if (ra !== rb) return ra < rb ? -1 : 1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    });
+  }, [onList, store]);
+
   /** Checks where the phone is and picks the closest store if it's within a quarter mile. */
   async function findStore() {
     setFinding(true);
@@ -167,7 +184,7 @@ export default function List() {
       )}
 
       <ul className="user-list">
-        {onList.map((i) => {
+        {sorted.map((i) => {
           const here = store ? i.stores.find((s) => s.storeId === store.id) : undefined;
           return (
             <li
@@ -221,6 +238,8 @@ export default function List() {
           onSaved={(updated) => {
             setItems((all) => all?.map((i) => (i.id === updated.id ? updated : i)) ?? all);
             setEditing(null);
+            // A location typed for the first time is now one of the store's choices.
+            api.listStores().then(setStores, () => {});
           }}
         />
       )}

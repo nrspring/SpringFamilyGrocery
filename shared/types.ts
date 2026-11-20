@@ -18,6 +18,14 @@ export interface UserRef {
   photoUrl: string | null;
 }
 
+/** A named place inside a store, e.g. "Aisle 12". */
+export interface StoreLocation {
+  id: string;
+  name: string;
+  /** How many items are placed here. */
+  itemCount: number;
+}
+
 export interface Store {
   /** Permanent unique identifier (UUID). Safe to store as a foreign key. */
   id: string;
@@ -28,6 +36,8 @@ export interface Store {
   photoUrl: string | null;
   /** How many items are stocked here. */
   itemCount: number;
+  /** The places in the store, in the order you walk it. */
+  locations: StoreLocation[];
   createdAt: string;
   updatedAt: string;
 }

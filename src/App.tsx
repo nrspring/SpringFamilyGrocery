@@ -4,6 +4,7 @@ import type { Session, User } from "../shared/types";
 import Avatar from "./components/Avatar";
 import Items from "./pages/Items";
 import List from "./pages/List";
+import LocationOrder from "./pages/LocationOrder";
 import Login from "./pages/Login";
 import Stores from "./pages/Stores";
 import Users from "./pages/Users";
@@ -97,6 +98,7 @@ export default function App() {
           <Route path="/list" element={<Navigate to="/" replace />} />
           <Route path="/items" element={<Items user={user} />} />
           <Route path="/stores" element={<Stores />} />
+          <Route path="/stores/:id/locations" element={<LocationOrder />} />
           <Route path="/users" element={<Users />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

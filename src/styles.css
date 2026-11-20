@@ -597,7 +597,6 @@ button.star.on {
   border-radius: 10px;
 }
 .store-location {
-  width: calc(100% - 16px);
   margin: 0 8px 8px;
 }
 .store-picker {
@@ -648,6 +647,161 @@ button.locate {
 .item-row.pressable .thumb img {
   pointer-events: none;
   -webkit-user-drag: none;
+}
+/* ---- Order locations ---- */
+.back-link {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: none;
+}
+.order-intro {
+  margin-bottom: 16px;
+}
+.add-location {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.add-location input {
+  flex: 1;
+  min-width: 0;
+}
+.order-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.order-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.05);
+}
+.order-number {
+  flex: none;
+  width: 20px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+.order-row {
+  position: relative;
+  /* Holding a row picks it up, so the browser's own text selection and callout must stay out of the way. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.order-row.dragging {
+  z-index: 3;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.22);
+  cursor: grabbing;
+}
+/* A big grab target; touch-action keeps a finger on it from scrolling the page instead of dragging. */
+.drag-handle {
+  flex: none;
+  width: 40px;
+  height: 52px;
+  margin-left: -6px;
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.save-status {
+  font-size: 0.9rem;
+  min-width: 5.5em;
+  text-align: right;
+}
+.order-error {
+  position: sticky;
+  top: 8px;
+  z-index: 4;
+  padding: 10px 12px;
+  background: #fdecea;
+  border-radius: 10px;
+}
+.order-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.order-name strong {
+  font-size: 1.25rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.order-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+button.link.remove-link {
+  color: #b3261e;
+  padding: 6px 8px;
+  font-size: 0.9rem;
+}
+.order-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.order-actions button.secondary {
+  margin-top: 0;
+}
+button.move {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  font-size: 1.2rem;
+}
+.location-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.location-picker input {
+  width: 100%;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+button.chip {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid #c9cfc9;
+  font-weight: 500;
+  text-align: left;
+}
+button.chip:hover:not(:disabled) {
+  background: #e8efe9;
+}
+button.chip[aria-pressed="true"],
+button.chip[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
 }
 .location-photo-empty {
   display: grid;

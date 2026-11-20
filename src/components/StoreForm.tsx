@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Store } from "../../shared/types";
 import { api } from "../api";
 import { currentPosition } from "../geo";
@@ -33,6 +34,14 @@ export default function StoreForm({ store, onDelete, blocked, onSaved, onCancel 
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+  // Leaving for another screen would throw away what's typed here, so wait until it's saved.
+  const dirty =
+    !!store &&
+    (name.trim() !== store.name ||
+      latitude.trim() !== (store.latitude?.toString() ?? "") ||
+      longitude.trim() !== (store.longitude?.toString() ?? "") ||
+      photo !== null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const libraryInput = useRef<HTMLInputElement>(null);
 
@@ -198,6 +207,27 @@ export default function StoreForm({ store, onDelete, blocked, onSaved, onCancel 
           <p className="muted small-text">
             Stand in the store and press the button, or type the coordinates in yourself.
           </p>
+
+          {store && (
+            <>
+              <span className="field-label">Locations</span>
+              <p className="muted small-text">
+                {store.locations.length === 0
+                  ? "No locations yet."
+                  : `${store.locations.length} location${store.locations.length === 1 ? "" : "s"}.`}{" "}
+                Put them in the order you walk the store; the List is sorted that way.
+              </p>
+              <button
+                type="button"
+                className="secondary"
+                disabled={dirty}
+                onClick={() => navigate(`/stores/${store.id}/locations`)}
+              >
+                Order locations…
+              </button>
+              {dirty && <p className="muted small-text">Save your changes first.</p>}
+            </>
+          )}
 
           {error && (
             <p className="error" role="alert">

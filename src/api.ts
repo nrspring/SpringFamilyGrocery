@@ -84,8 +84,28 @@ function toStoreForm(input: StoreInput) {
   return form;
 }
 
+const jsonInit = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(body),
+});
+
 export const api = {
   listStores: () => request<Store[]>("/api/stores"),
+
+  getStore: (id: string) => request<Store>(`/api/stores/${id}`),
+
+  /** Adds a place in the store (at the end of its order). Returns the updated store. */
+  addLocation: (storeId: string, name: string) =>
+    request<Store>(`/api/stores/${storeId}/locations`, jsonInit("POST", { name })),
+
+  /** Sets the order of the store's locations, first to last. Returns the updated store. */
+  orderLocations: (storeId: string, order: string[]) =>
+    request<Store>(`/api/stores/${storeId}/locations`, jsonInit("PUT", { order })),
+
+  /** Removes a location nothing uses; a 409 ApiError if items are still there. */
+  deleteLocation: (storeId: string, locationId: string) =>
+    request<Store>(`/api/stores/${storeId}/locations/${locationId}`, { method: "DELETE" }),
 
   createStore: (input: StoreInput) =>
     request<Store>("/api/stores", { method: "POST", body: toStoreForm(input) }),

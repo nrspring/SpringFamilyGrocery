@@ -1,6 +1,7 @@
 import type { Item, ItemStore } from "../shared/types";
 import type { Env } from "./env";
 import { error, json } from "./http";
+import { MAX_LOCATION_CHARS, prepareLocations } from "./locations";
 import { currentUser } from "./me";
 import { readForm, storePhoto } from "./users";
 
@@ -26,7 +27,6 @@ interface ItemRow {
 const MAX_NAME_CHARS = 80;
 const MAX_DESCRIPTION_CHARS = 500;
 const MAX_ALTERNATIVES = 50;
-const MAX_LOCATION_CHARS = 60;
 const MAX_STORES = 50;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -182,7 +182,7 @@ async function validStores(env: Env, value: unknown) {
     byStore.set(entry.storeId, location);
   }
   if (byStore.size > MAX_STORES) throw new Error(`Pick at most ${MAX_STORES} stores`);
-  if (byStore.size === 0) return [];
+  if (byStore.size === 0) return { entries: [], statements: [] };
 
   const ids = [...byStore.keys()];
   const marks = ids.map(() => "?").join(", ");
@@ -190,8 +190,15 @@ async function validStores(env: Env, value: unknown) {
     .bind(...ids)
     .all<{ id: string }>();
   if (results.length !== ids.length) throw new Error("One of those stores no longer exists");
-  return [...byStore].map(([storeId, location]) => ({ storeId, location }));
+
+  // New location names join the store's list; known ones come back in their stored spelling.
+  return prepareLocations(
+    env,
+    [...byStore].map(([storeId, location]) => ({ storeId, location })),
+  );
 }
+
+type PlacedStores = Awaited<ReturnType<typeof validStores>>;
 
 const insertStores = (env: Env, itemId: string, stores: { storeId: string; location: string }[]) =>
   stores.map((s) =>
@@ -219,7 +226,7 @@ async function createItem(request: Request, env: Env) {
   let name: string;
   let description: string;
   let alternatives: string[];
-  let stores: { storeId: string; location: string }[];
+  let stores: PlacedStores;
   let photoKey: string | null;
   try {
     name = validName(form.get("name"));
@@ -240,7 +247,8 @@ async function createItem(request: Request, env: Env) {
       adder.id,
     ),
     ...insertAlternatives(env, id, alternatives),
-    ...insertStores(env, id, stores),
+    ...stores.statements,
+    ...insertStores(env, id, stores.entries),
   ]);
 
   return json((await getItem(env, id))!, 201);
@@ -256,7 +264,7 @@ async function updateItem(request: Request, env: Env, id: string) {
   let name = existing.name;
   let description = existing.description;
   let alternatives: string[] | null = null;
-  let stores: { storeId: string; location: string }[] | null = null;
+  let stores: PlacedStores | null = null;
   let photoKey = existing.photo_key;
   try {
     if (form.has("name")) name = validName(form.get("name"));
@@ -282,7 +290,11 @@ async function updateItem(request: Request, env: Env, id: string) {
         ]
       : []),
     ...(stores
-      ? [env.DB.prepare("DELETE FROM item_stores WHERE item_id = ?").bind(id), ...insertStores(env, id, stores)]
+      ? [
+          env.DB.prepare("DELETE FROM item_stores WHERE item_id = ?").bind(id),
+          ...stores.statements,
+          ...insertStores(env, id, stores.entries),
+        ]
       : []),
   ]);
 
@@ -346,12 +358,15 @@ async function setItemStore(request: Request, env: Env, itemId: string, storeId:
     return error("Store not found", 404);
   }
 
-  await env.DB.prepare(
-    `INSERT INTO item_stores (item_id, store_id, location) VALUES (?, ?, ?)
-     ON CONFLICT (item_id, store_id) DO UPDATE SET location = excluded.location`,
-  )
-    .bind(itemId, storeId, location)
-    .run();
+  // A new location name joins the store's list; a known one is stored in its saved spelling.
+  const prepared = await prepareLocations(env, [{ storeId, location }]);
+  await env.DB.batch([
+    ...prepared.statements,
+    env.DB.prepare(
+      `INSERT INTO item_stores (item_id, store_id, location) VALUES (?, ?, ?)
+       ON CONFLICT (item_id, store_id) DO UPDATE SET location = excluded.location`,
+    ).bind(itemId, storeId, prepared.entries[0].location),
+  ]);
 
   return json((await getItem(env, itemId))!);
 }

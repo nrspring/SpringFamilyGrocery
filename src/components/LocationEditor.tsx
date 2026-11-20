@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Item, Store } from "../../shared/types";
 import { api } from "../api";
+import LocationPicker from "./LocationPicker";
 
 interface Props {
   item: Item;
@@ -57,13 +58,7 @@ export default function LocationEditor({ item, store, onSaved, onCancel }: Props
 
         <div className="location-field">
           <label htmlFor="item-location">Where is it in {store.name}?</label>
-          <input
-            id="item-location"
-            value={location}
-            maxLength={60}
-            placeholder="e.g. Aisle 12"
-            onChange={(e) => setLocation(e.target.value)}
-          />
+          <LocationPicker id="item-location" store={store} value={location} onChange={setLocation} />
         </div>
 
         {error && (

@@ -42,12 +42,30 @@ kept in `item_stores`. The item's Edit sheet has a "Where to find it" section: t
 is. The API takes it as a JSON array of `{ storeId, location }` in the `stores` form field and replaces the whole
 list; `GET /api/items` returns it as `stores` (with each store's name). Locations show on the Items screen.
 
+**Locations within a store** are real, ordered things: the `store_locations` table (name and position per
+store, names unique ignoring case). `GET /api/stores` returns each store's `locations` in walking order with how
+many items use each. An item's location is still the text in `item_stores.location`, but the server keeps it equal
+to one of those names: saving an item with a new name adds it to the end of the store's order, and a name that
+matches an existing one ignoring case is stored in the saved spelling. The store's Edit sheet has **Order
+locations…**, opening `/stores/:id/locations`, where you put them in the order you walk the store: on a touch
+screen press and hold anywhere on a row (about a quarter of a second; moving first just scrolls) and drag it,
+with the other rows and their numbers shifting live as you go; with a mouse drag the ⠿ handle; or use the ▲ ▼
+buttons. The page scrolls when you drag toward an edge, and is held still under your finger while a row is lifted. Every change shows instantly and is saved in the background (the newest order wins), so a slow
+connection never leaves the buttons dead; **Sort A–Z** orders them naturally ("Aisle 2" before "Aisle 10"), and a location can be
+added, or removed once nothing uses it. The API is `POST /api/stores/:id/locations` (`{ name }`),
+`PUT /api/stores/:id/locations` (`{ order: [names] }`; any name left out keeps its place after the listed ones)
+and `DELETE /api/stores/:id/locations/:locationId` (`409` while items use it). Wherever you type a location
+(the item's Edit sheet, the long-press popup) it is a combo box: a text box with the store's existing locations
+as tap buttons beneath, and typing a new name adds it. Migration `0007` carried over every location already in
+use.
+
 On the **List** screen, a "Shopping at" picker chooses the store (not remembered: the List always opens with none chosen). The 📍
 button next to it checks the phone's GPS and selects the closest store that has a recorded location, if it is
 within a quarter mile; otherwise it leaves the choice alone and says how far the nearest one is. The distance
 is worked out in the browser (the position never goes to the server). With no store chosen, no locations are
 shown. Once one is chosen, each item shows that store's location ("Not set for…" if it hasn't been placed
-there). **Press and hold** an item (right-click on a desktop): with no store chosen it shows just the item's
+there) and the list is **sorted in that store's walking order** (items with no location there last, ties by
+name). **Press and hold** an item (right-click on a desktop): with no store chosen it shows just the item's
 picture, big; with a store chosen it opens the photo and a box to edit the location in that store. That uses
 `PUT /api/items/:itemId/stores/:storeId` with `{ "location": "Aisle 12" }` (adds the item to the store if
 needed), which changes one store without touching the item's others. (`DELETE` on the same path unlinks an item

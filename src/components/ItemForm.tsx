@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent 
 import type { Item, Store, User } from "../../shared/types";
 import { api } from "../api";
 import ItemThumb from "./ItemThumb";
+import LocationPicker from "./LocationPicker";
 import PhotoCropper from "./PhotoCropper";
 
 interface Props {
@@ -202,14 +203,15 @@ export default function ItemForm({ item, items, stores, user, onDelete, blocked,
                       <span>{s.name}</span>
                     </label>
                     {here !== undefined && (
-                      <input
-                        className="store-location"
-                        value={here}
-                        maxLength={60}
-                        placeholder="Where in the store? e.g. Aisle 12"
-                        aria-label={`Location in ${s.name}`}
-                        onChange={(e) => setLocation(s.id, e.target.value)}
-                      />
+                      <div className="store-location">
+                        <LocationPicker
+                          id={`item-location-${s.id}`}
+                          store={s}
+                          value={here}
+                          ariaLabel={`Location in ${s.name}`}
+                          onChange={(v) => setLocation(s.id, v)}
+                        />
+                      </div>
                     )}
                   </li>
                 );
