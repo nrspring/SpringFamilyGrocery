@@ -45,9 +45,10 @@ list; `GET /api/items` returns it as `stores` (with each store's name). Location
 On the **List** screen, a "Shopping at" picker chooses the store (not remembered: the List always opens with none chosen). The 📍
 button next to it checks the phone's GPS and selects the closest store that has a recorded location, if it is
 within a quarter mile; otherwise it leaves the choice alone and says how far the nearest one is. The distance
-is worked out in the browser (the position never goes to the server). Once
-one is chosen, every item shows where it is in that store ("Not set for…" if it hasn't been placed there).
-**Press and hold** an item (right-click on a desktop) to edit that location. That uses
+is worked out in the browser (the position never goes to the server). With no store chosen, no locations are
+shown. Once one is chosen, each item shows that store's location ("Not set for…" if it hasn't been placed
+there). **Press and hold** an item (right-click on a desktop): with no store chosen it shows just the item's
+picture, big; with a store chosen it opens the photo and a box to edit the location in that store. That uses
 `PUT /api/items/:itemId/stores/:storeId` with `{ "location": "Aisle 12" }` (adds the item to the store if
 needed), which changes one store without touching the item's others. (`DELETE` on the same path unlinks an item
 from a store; the app doesn't use it, since the item's Edit sheet handles that.)

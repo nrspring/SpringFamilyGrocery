@@ -4,16 +4,18 @@ import { api } from "../api";
 
 interface Props {
   item: Item;
+  /** The store chosen on the List. */
   store: Store;
   /** Called with the item as the server now has it. */
   onSaved: (item: Item) => void;
   onCancel: () => void;
 }
 
-/** A small dialog for saying where one item is in one store. */
+/** A dialog for saying where one item is in the store chosen on the List. */
 export default function LocationEditor({ item, store, onSaved, onCancel }: Props) {
-  const current = item.stores.find((s) => s.storeId === store.id);
-  const [location, setLocation] = useState(current?.location ?? "");
+  const [location, setLocation] = useState(
+    item.stores.find((s) => s.storeId === store.id)?.location ?? "",
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   // The finger that opened this may still be down; ignore backdrop taps for a moment.
@@ -43,31 +45,26 @@ export default function LocationEditor({ item, store, onSaved, onCancel }: Props
       onClick={() => Date.now() - openedAt.current > 400 && !busy && onCancel()}
     >
       <form
-        className="sheet"
+        className="sheet location-sheet"
         role="dialog"
         aria-modal="true"
         aria-label={`${item.name} in ${store.name}`}
         onClick={(e) => e.stopPropagation()}
         onSubmit={save}
       >
+        {item.photoUrl && <img className="location-photo" src={item.photoUrl} alt={item.name} />}
         <h2>{item.name}</h2>
-        <p className="added-by">
-          Where is it in <strong>{store.name}</strong>?
-        </p>
 
-        <label htmlFor="item-location">Location</label>
-        <input
-          id="item-location"
-          value={location}
-          maxLength={60}
-          placeholder="e.g. Aisle 12"
-          onChange={(e) => setLocation(e.target.value)}
-        />
-        {!current && (
-          <p className="muted small-text">
-            This item isn't set for {store.name} yet. Saving adds it there.
-          </p>
-        )}
+        <div className="location-field">
+          <label htmlFor="item-location">Where is it in {store.name}?</label>
+          <input
+            id="item-location"
+            value={location}
+            maxLength={60}
+            placeholder="e.g. Aisle 12"
+            onChange={(e) => setLocation(e.target.value)}
+          />
+        </div>
 
         {error && (
           <p className="error" role="alert">

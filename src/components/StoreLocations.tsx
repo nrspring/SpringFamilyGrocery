@@ -7,8 +7,8 @@ export default function StoreLocations({ stores }: { stores: ItemStore[] }) {
     <ul className="item-stores" aria-label="Where to find it">
       {stores.map((s) => (
         <li key={s.storeId}>
-          <span aria-hidden>🏪</span> <strong>{s.storeName}</strong>
-          {s.location && <> · {s.location}</>}
+          <span aria-hidden>🏪</span> <strong>{s.storeName}{s.location && ":"}</strong>
+          {s.location && <> {s.location}</>}
         </li>
       ))}
     </ul>

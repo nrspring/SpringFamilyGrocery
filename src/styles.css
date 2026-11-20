@@ -637,9 +637,55 @@ button.locate {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
-.item-place {
-  font-size: 0.95rem;
+/* The List is read at arm's length in a store aisle, so its text is larger. */
+.list-item .item-title strong {
+  font-size: 1.4rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+/* On a phone, pressing and holding a photo starts the browser's image drag/menu, which would
+   cancel our long press. Let presses go through the photo to the row instead. */
+.item-row.pressable .thumb img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.location-photo-empty {
+  display: grid;
+  place-items: center;
+  padding: 12px 0;
+}
+.location-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.location-field label {
+  font-size: 1.1rem;
   font-weight: 600;
+}
+.item-place {
+  font-size: 1.3rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+.item-place.unset {
+  font-size: 1.05rem;
+}
+.location-photo {
+  /* Square like the cropped photos, as big as fits without pushing everything off a short screen. */
+  width: min(100%, 320px, 45vh);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 16px;
+  align-self: center;
+}
+.location-sheet h2 {
+  font-size: 1.6rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.location-sheet input {
+  font-size: 1.2rem;
 }
 .item-place.unset {
   font-weight: 400;

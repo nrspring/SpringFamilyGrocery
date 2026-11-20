@@ -8,7 +8,7 @@ interface Props {
 export default function ItemThumb({ name, photoUrl, size = 56 }: Props) {
   return (
     <span className="thumb" style={{ width: size, height: size, fontSize: size * 0.42 }} aria-hidden>
-      {photoUrl ? <img src={photoUrl} alt="" /> : (name.trim()[0] ?? "?").toUpperCase()}
+      {photoUrl ? <img src={photoUrl} alt="" draggable={false} /> : (name.trim()[0] ?? "?").toUpperCase()}
     </span>
   );
 }

@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Item, Store } from "../../shared/types";
 import { api } from "../api";
-import Avatar from "../components/Avatar";
 import ItemThumb from "../components/ItemThumb";
 import LocationEditor from "../components/LocationEditor";
+import PhotoViewer from "../components/PhotoViewer";
 import { METERS_PER_MILE, currentPosition, distanceMeters, formatDistance } from "../geo";
 import { useLongPress } from "../useLongPress";
 
@@ -16,7 +16,9 @@ export default function List() {
   const [stores, setStores] = useState<Store[]>([]);
   // Deliberately not remembered: the List always opens with no store chosen.
   const [storeId, setStoreId] = useState("");
+  // Press and hold: edits the item's location when a store is chosen, otherwise shows its picture.
   const [editing, setEditing] = useState<Item | null>(null);
+  const [viewing, setViewing] = useState<Item | null>(null);
   const [finding, setFinding] = useState(false);
   // The outcome of the last "find my store" press, shown where the usual hint goes.
   const [found, setFound] = useState<{ ok: boolean; text: string } | null>(null);
@@ -137,14 +139,14 @@ export default function List() {
             <p className="muted small-text">
               {store
                 ? `Press and hold an item to set where it is in ${store.name}.`
-                : "Choose a store to see where each item is."}
+                : "Choose a store to see where each item is. Press and hold an item for a bigger picture."}
             </p>
           )}
         </div>
       )}
       {items && stores.length === 0 && onList.length > 0 && (
         <p className="muted small-text store-picker">
-          Add a store on the <Link to="/stores">Stores</Link> screen to see where each item is.
+          Add a store on the <Link to="/stores">Stores</Link> screen to say where each item is.
         </p>
       )}
 
@@ -170,8 +172,8 @@ export default function List() {
           return (
             <li
               key={i.id}
-              className={`user-row item-row${store ? " pressable" : ""}`}
-              {...(store ? longPress(() => setEditing(i)) : {})}
+              className="user-row item-row list-item pressable"
+              {...longPress(() => (store ? setEditing(i) : setViewing(i)))}
             >
               <ItemThumb name={i.name} photoUrl={i.photoUrl} />
               <div className="item-info">
@@ -179,6 +181,7 @@ export default function List() {
                   <strong>{i.name}</strong>
                 </div>
                 {i.description && <p className="item-desc">{i.description}</p>}
+                {/* Locations only appear once a store is chosen. */}
                 {store && (
                   <p className={`item-place${here?.location ? "" : " unset"}`}>
                     <span aria-hidden>📍</span>{" "}
@@ -188,17 +191,6 @@ export default function List() {
                 {i.alternativeIds.length > 0 && (
                   <p className="item-alts">
                     Alternatives: {i.alternativeIds.map((id) => names.get(id) ?? "(missing)").join(", ")}
-                  </p>
-                )}
-                {i.list?.addedBy && (
-                  <p className="item-added">
-                    <Avatar
-                      name={i.list.addedBy.name}
-                      color={i.list.addedBy.color}
-                      photoUrl={i.list.addedBy.photoUrl}
-                      size={16}
-                    />
-                    Added by {i.list.addedBy.name}
                   </p>
                 )}
               </div>
@@ -216,6 +208,8 @@ export default function List() {
           );
         })}
       </ul>
+
+      {viewing && <PhotoViewer item={viewing} onClose={() => setViewing(null)} />}
 
       {editing && store && (
         <LocationEditor
