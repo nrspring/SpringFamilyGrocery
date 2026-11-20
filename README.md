@@ -67,7 +67,9 @@ shown. Once one is chosen, each item shows that store's location ("Not set forâ€
 there) and the list is **sorted in that store's walking order** (items with no location there last, ties by
 name). **Press and hold** an item (right-click on a desktop): with no store chosen it shows just the item's
 picture, big; with a store chosen it opens the photo and a box to edit the location in that store (if the item isn't set up
-for that store yet, it first asks whether to define it there). That uses
+for that store yet, it first asks whether to define it there). The same popup can **replace the item's picture**
+(Take photo / Choose photo, then the usual square cropper); the new picture is saved with the location when you
+press Save, and Cancel discards it. The picture belongs to the item, so it changes in every store. That uses
 `PUT /api/items/:itemId/stores/:storeId` with `{ "location": "Aisle 12" }` (adds the item to the store if
 needed), which changes one store without touching the item's others. (`DELETE` on the same path unlinks an item
 from a store; the app doesn't use it, since the item's Edit sheet handles that.)

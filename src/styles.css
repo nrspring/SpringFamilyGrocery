@@ -808,6 +808,15 @@ button.chip[aria-pressed="true"]:hover:not(:disabled) {
   place-items: center;
   padding: 12px 0;
 }
+.location-photo-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.location-photo-buttons button.secondary {
+  margin-top: 0;
+}
 .confirm-text {
   margin: 0;
   font-size: 1.2rem;
