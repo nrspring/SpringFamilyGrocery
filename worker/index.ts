@@ -4,6 +4,7 @@ import { json } from "./http";
 import { handleItems } from "./items";
 import { handleList } from "./list";
 import { clearUserCookie, currentUser, handleMe } from "./me";
+import { handleStores } from "./stores";
 import { handleUsers } from "./users";
 
 async function login(request: Request, env: Env) {
@@ -47,6 +48,7 @@ async function handleApi(request: Request, env: Env, path: string) {
     (await handleMe(request, env, path)) ??
     (await handleUsers(request, env, path)) ??
     (await handleItems(request, env, path)) ??
+    (await handleStores(request, env, path)) ??
     (await handleList(request, env, path));
   if (response) return response;
 

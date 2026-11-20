@@ -18,6 +18,28 @@ export interface UserRef {
   photoUrl: string | null;
 }
 
+export interface Store {
+  /** Permanent unique identifier (UUID). Safe to store as a foreign key. */
+  id: string;
+  name: string;
+  /** Decimal degrees; null until the store's location has been recorded. */
+  latitude: number | null;
+  longitude: number | null;
+  photoUrl: string | null;
+  /** How many items are stocked here. */
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Where one item can be found in one store. */
+export interface ItemStore {
+  storeId: string;
+  storeName: string;
+  /** Free text such as "Aisle 12"; may be empty. */
+  location: string;
+}
+
 export interface Item {
   /** Permanent unique identifier (UUID). Safe to store as a foreign key. */
   id: string;
@@ -30,6 +52,8 @@ export interface Item {
   list: { addedBy: UserRef | null; addedAt: string } | null;
   /** Ids of items that are acceptable substitutes for this one. */
   alternativeIds: string[];
+  /** The stores that sell it, with where to find it in each, sorted by store name. */
+  stores: ItemStore[];
   createdAt: string;
   updatedAt: string;
 }

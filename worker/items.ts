@@ -1,4 +1,4 @@
-import type { Item } from "../shared/types";
+import type { Item, ItemStore } from "../shared/types";
 import type { Env } from "./env";
 import { error, json } from "./http";
 import { currentUser } from "./me";
@@ -26,6 +26,8 @@ interface ItemRow {
 const MAX_NAME_CHARS = 80;
 const MAX_DESCRIPTION_CHARS = 500;
 const MAX_ALTERNATIVES = 50;
+const MAX_LOCATION_CHARS = 60;
+const MAX_STORES = 50;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const SELECT_ITEMS = `
@@ -44,7 +46,7 @@ const userRef = (id: string | null, name: string | null, color: string | null, p
     ? { id, name, color: color ?? "#888888", photoUrl: photoKey ? `/api/images/${photoKey}` : null }
     : null;
 
-function toItem(row: ItemRow, alternativeIds: string[]): Item {
+function toItem(row: ItemRow, alternativeIds: string[], stores: ItemStore[]): Item {
   return {
     id: row.id,
     name: row.name,
@@ -58,6 +60,7 @@ function toItem(row: ItemRow, alternativeIds: string[]): Item {
         }
       : null,
     alternativeIds,
+    stores,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -77,21 +80,44 @@ async function alternativesFor(env: Env, itemId?: string) {
   return byItem;
 }
 
+/** Where each item can be found, by item id (or just one item's), sorted by store name. */
+async function storesFor(env: Env, itemId?: string) {
+  const sql = `SELECT x.item_id, x.store_id, s.name AS store_name, x.location
+                 FROM item_stores x JOIN stores s ON s.id = x.store_id
+                ${itemId ? "WHERE x.item_id = ?" : ""}
+                ORDER BY s.name COLLATE NOCASE`;
+  const statement = itemId ? env.DB.prepare(sql).bind(itemId) : env.DB.prepare(sql);
+  const { results } = await statement.all<{
+    item_id: string;
+    store_id: string;
+    store_name: string;
+    location: string;
+  }>();
+  const byItem = new Map<string, ItemStore[]>();
+  for (const r of results) {
+    const list = byItem.get(r.item_id) ?? [];
+    list.push({ storeId: r.store_id, storeName: r.store_name, location: r.location });
+    byItem.set(r.item_id, list);
+  }
+  return byItem;
+}
+
 const getRow = (env: Env, id: string) =>
   env.DB.prepare(`${SELECT_ITEMS} WHERE i.id = ?`).bind(id).first<ItemRow>();
 
 export async function getItem(env: Env, id: string) {
   const row = await getRow(env, id);
   if (!row) return null;
-  return toItem(row, (await alternativesFor(env, id)).get(id) ?? []);
+  const [alternatives, stores] = await Promise.all([alternativesFor(env, id), storesFor(env, id)]);
+  return toItem(row, alternatives.get(id) ?? [], stores.get(id) ?? []);
 }
 
 async function listItems(env: Env) {
   const { results } = await env.DB.prepare(
     `${SELECT_ITEMS} ORDER BY i.name COLLATE NOCASE`,
   ).all<ItemRow>();
-  const alternatives = await alternativesFor(env);
-  return json(results.map((row) => toItem(row, alternatives.get(row.id) ?? [])));
+  const [alternatives, stores] = await Promise.all([alternativesFor(env), storesFor(env)]);
+  return json(results.map((row) => toItem(row, alternatives.get(row.id) ?? [], stores.get(row.id) ?? [])));
 }
 
 function validName(value: unknown) {
@@ -132,6 +158,50 @@ async function validAlternatives(env: Env, value: unknown, selfId: string) {
   return ids;
 }
 
+/**
+ * Parses the `stores` field: a JSON array of `{ storeId, location }`. Every store
+ * must exist; a store listed twice keeps its last location.
+ */
+async function validStores(env: Env, value: unknown) {
+  const invalid = () => new Error("Stores must be a list of stores with a location for each");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(String(value ?? "[]"));
+  } catch {
+    throw invalid();
+  }
+  if (!Array.isArray(parsed)) throw invalid();
+
+  const byStore = new Map<string, string>();
+  for (const entry of parsed as { storeId?: unknown; location?: unknown }[]) {
+    if (!entry || typeof entry.storeId !== "string" || !UUID_RE.test(entry.storeId)) throw invalid();
+    const location = String(entry.location ?? "").trim();
+    if (location.length > MAX_LOCATION_CHARS) {
+      throw new Error(`A location must be ${MAX_LOCATION_CHARS} characters or fewer`);
+    }
+    byStore.set(entry.storeId, location);
+  }
+  if (byStore.size > MAX_STORES) throw new Error(`Pick at most ${MAX_STORES} stores`);
+  if (byStore.size === 0) return [];
+
+  const ids = [...byStore.keys()];
+  const marks = ids.map(() => "?").join(", ");
+  const { results } = await env.DB.prepare(`SELECT id FROM stores WHERE id IN (${marks})`)
+    .bind(...ids)
+    .all<{ id: string }>();
+  if (results.length !== ids.length) throw new Error("One of those stores no longer exists");
+  return [...byStore].map(([storeId, location]) => ({ storeId, location }));
+}
+
+const insertStores = (env: Env, itemId: string, stores: { storeId: string; location: string }[]) =>
+  stores.map((s) =>
+    env.DB.prepare("INSERT INTO item_stores (item_id, store_id, location) VALUES (?, ?, ?)").bind(
+      itemId,
+      s.storeId,
+      s.location,
+    ),
+  );
+
 const insertAlternatives = (env: Env, itemId: string, ids: string[]) =>
   ids.map((altId) =>
     env.DB.prepare("INSERT INTO item_alternatives (item_id, alternative_id) VALUES (?, ?)").bind(itemId, altId),
@@ -149,11 +219,13 @@ async function createItem(request: Request, env: Env) {
   let name: string;
   let description: string;
   let alternatives: string[];
+  let stores: { storeId: string; location: string }[];
   let photoKey: string | null;
   try {
     name = validName(form.get("name"));
     description = validDescription(form.get("description"));
     alternatives = await validAlternatives(env, form.get("alternatives"), id);
+    stores = await validStores(env, form.get("stores"));
     photoKey = await storePhoto(env, form.get("photo"), id, "Photo");
   } catch (e) {
     return error((e as Error).message, 400);
@@ -168,6 +240,7 @@ async function createItem(request: Request, env: Env) {
       adder.id,
     ),
     ...insertAlternatives(env, id, alternatives),
+    ...insertStores(env, id, stores),
   ]);
 
   return json((await getItem(env, id))!, 201);
@@ -183,11 +256,13 @@ async function updateItem(request: Request, env: Env, id: string) {
   let name = existing.name;
   let description = existing.description;
   let alternatives: string[] | null = null;
+  let stores: { storeId: string; location: string }[] | null = null;
   let photoKey = existing.photo_key;
   try {
     if (form.has("name")) name = validName(form.get("name"));
     if (form.has("description")) description = validDescription(form.get("description"));
     if (form.has("alternatives")) alternatives = await validAlternatives(env, form.get("alternatives"), id);
+    if (form.has("stores")) stores = await validStores(env, form.get("stores"));
     photoKey = (await storePhoto(env, form.get("photo"), id, "Photo")) ?? photoKey;
   } catch (e) {
     return error((e as Error).message, 400);
@@ -205,6 +280,9 @@ async function updateItem(request: Request, env: Env, id: string) {
           env.DB.prepare("DELETE FROM item_alternatives WHERE item_id = ?").bind(id),
           ...insertAlternatives(env, id, alternatives),
         ]
+      : []),
+    ...(stores
+      ? [env.DB.prepare("DELETE FROM item_stores WHERE item_id = ?").bind(id), ...insertStores(env, id, stores)]
       : []),
   ]);
 
@@ -239,11 +317,50 @@ async function deleteItem(request: Request, env: Env, id: string) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM item_alternatives WHERE item_id = ? OR alternative_id = ?").bind(id, id),
     env.DB.prepare("DELETE FROM list_entries WHERE item_id = ?").bind(id),
+    env.DB.prepare("DELETE FROM item_stores WHERE item_id = ?").bind(id),
     env.DB.prepare("DELETE FROM items WHERE id = ?").bind(id),
   ]);
   if (row.photo_key) await env.PHOTOS.delete(row.photo_key);
 
   return new Response(null, { status: 204 });
+}
+
+/**
+ * Sets where one item is found in one store (adding it to the store if it wasn't
+ * there), without touching its other stores. Body: `{ "location": "Aisle 12" }`.
+ */
+async function setItemStore(request: Request, env: Env, itemId: string, storeId: string) {
+  let body: { location?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return error("Invalid request", 400);
+  }
+  const location = String(body?.location ?? "").trim();
+  if (location.length > MAX_LOCATION_CHARS) {
+    return error(`A location must be ${MAX_LOCATION_CHARS} characters or fewer`, 400);
+  }
+
+  if (!(await getRow(env, itemId))) return error("Item not found", 404);
+  if (!(await env.DB.prepare("SELECT 1 FROM stores WHERE id = ?").bind(storeId).first())) {
+    return error("Store not found", 404);
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO item_stores (item_id, store_id, location) VALUES (?, ?, ?)
+     ON CONFLICT (item_id, store_id) DO UPDATE SET location = excluded.location`,
+  )
+    .bind(itemId, storeId, location)
+    .run();
+
+  return json((await getItem(env, itemId))!);
+}
+
+/** Says an item isn't sold at a store. Harmless to repeat. */
+async function removeItemStore(env: Env, itemId: string, storeId: string) {
+  if (!(await getRow(env, itemId))) return error("Item not found", 404);
+  await env.DB.prepare("DELETE FROM item_stores WHERE item_id = ? AND store_id = ?").bind(itemId, storeId).run();
+  return json((await getItem(env, itemId))!);
 }
 
 const methodNotAllowed = () => error("Method not allowed", 405);
@@ -255,6 +372,13 @@ export async function handleItems(request: Request, env: Env, path: string) {
   if (path === "/api/items") {
     if (method === "GET") return listItems(env);
     if (method === "POST") return createItem(request, env);
+    return methodNotAllowed();
+  }
+
+  const placed = path.match(/^\/api\/items\/([0-9a-f-]{36})\/stores\/([0-9a-f-]{36})$/);
+  if (placed) {
+    if (method === "PUT") return setItemStore(request, env, placed[1], placed[2]);
+    if (method === "DELETE") return removeItemStore(env, placed[1], placed[2]);
     return methodNotAllowed();
   }
 

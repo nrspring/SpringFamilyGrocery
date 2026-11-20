@@ -5,6 +5,7 @@ import Avatar from "./components/Avatar";
 import Items from "./pages/Items";
 import List from "./pages/List";
 import Login from "./pages/Login";
+import Stores from "./pages/Stores";
 import Users from "./pages/Users";
 import WhoAreYou from "./pages/WhoAreYou";
 
@@ -95,6 +96,7 @@ export default function App() {
           <Route path="/" element={<List />} />
           <Route path="/list" element={<Navigate to="/" replace />} />
           <Route path="/items" element={<Items user={user} />} />
+          <Route path="/stores" element={<Stores />} />
           <Route path="/users" element={<Users />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -108,6 +110,10 @@ export default function App() {
         <NavLink to="/items">
           <span aria-hidden>🛒</span>
           Items
+        </NavLink>
+        <NavLink to="/stores">
+          <span aria-hidden>🏪</span>
+          Stores
         </NavLink>
         <NavLink to="/users">
           <span aria-hidden>👥</span>

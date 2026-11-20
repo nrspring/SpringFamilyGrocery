@@ -84,6 +84,10 @@ button.secondary {
   border: 1px solid var(--green);
   margin-top: 8px;
 }
+/* Without this the generic hover above paints it dark green under green text. */
+button.secondary:hover:not(:disabled) {
+  background: #e8efe9;
+}
 .muted {
   color: var(--muted);
   margin: 0;
@@ -239,6 +243,10 @@ button.small {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.sheet > * {
+  /* In a short window, scroll the sheet rather than squashing lists and text boxes to slivers. */
+  flex-shrink: 0;
 }
 .sheet h2 {
   margin: 0 0 4px;
@@ -564,6 +572,73 @@ button.star.on {
 }
 .check-row {
   font-weight: 600;
+}
+
+/* ---- Stores ---- */
+.coords {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.coords input {
+  width: 100%;
+}
+.geo-ok {
+  margin: 0;
+  color: var(--green-dark);
+}
+.store-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid #c9cfc9;
+  border-radius: 10px;
+}
+.store-location {
+  width: calc(100% - 16px);
+  margin: 0 8px 8px;
+}
+.store-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+.store-picker select {
+  font: inherit;
+  padding: 12px 14px;
+  border: 1px solid #c9cfc9;
+  border-radius: 10px;
+  background: #fff;
+}
+.store-picker select:focus {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+}
+/* Rows you can press and hold: no text selection or browser callout fighting the long press. */
+.item-row.pressable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.item-place {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.item-place.unset {
+  font-weight: 400;
+  color: var(--muted);
+}
+.item-stores {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+.item-stores li {
+  margin-top: 1px;
 }
 
 /* ---- Who are you? picker + current user ---- */

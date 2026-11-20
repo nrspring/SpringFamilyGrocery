@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Item, User } from "../../shared/types";
+import type { Item, Store, User } from "../../shared/types";
 import { ApiError, api } from "../api";
 import Avatar from "../components/Avatar";
 import ItemForm from "../components/ItemForm";
 import ItemThumb from "../components/ItemThumb";
+import StoreLocations from "../components/StoreLocations";
 
 export default function Items({ user }: { user: User | null }) {
   const [items, setItems] = useState<Item[] | null>(null);
+  const [stores, setStores] = useState<Store[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [starBusyId, setStarBusyId] = useState<string | null>(null);
@@ -20,7 +22,9 @@ export default function Items({ user }: { user: User | null }) {
 
   const load = useCallback(async () => {
     try {
-      setItems(await api.listItems());
+      const [loadedItems, loadedStores] = await Promise.all([api.listItems(), api.listStores()]);
+      setItems(loadedItems);
+      setStores(loadedStores);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -145,6 +149,7 @@ export default function Items({ user }: { user: User | null }) {
                 <strong>{i.name}</strong>
               </div>
               {i.description && <p className="item-desc">{i.description}</p>}
+              <StoreLocations stores={i.stores} />
               {i.alternativeIds.length > 0 && (
                 <p className="item-alts">
                   Alternatives:{" "}
@@ -186,6 +191,7 @@ export default function Items({ user }: { user: User | null }) {
           key={editing === "new" ? "new" : editing.id}
           item={editing === "new" ? undefined : editing}
           items={items}
+          stores={stores}
           user={user}
           // While the delete confirmation is up on top, the form behind it stays put.
           blocked={deleting !== null}

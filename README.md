@@ -6,7 +6,7 @@ Family grocery coordination site. Live at **https://groceries.thespringfamily.co
 - **API:** Cloudflare Worker (`worker/index.ts`), served from the same domain under `/api`
 - **Login:** one shared family password (`APP_PASSWORD` secret) that sets an HttpOnly 30-day session cookie, signed with a separate `SESSION_SECRET`
 
-After login the app opens on the shared shopping **List**, with **Items** and **Users** screens alongside it.
+After login the app opens on the shared shopping **List**, with **Items**, **Stores** and **Users** screens alongside it.
 
 ## Users
 
@@ -26,6 +26,28 @@ person who added an item is whoever the device chose in "Who are you?", so addin
 Acceptable alternatives live in `item_alternatives` and are **directional**: if Milk lists Oat milk, Oat milk
 is an acceptable substitute for Milk, but Milk is not automatically one for Oat milk. The API takes them as a
 JSON array of item ids in the `alternatives` form field and replaces the whole list.
+
+## Stores
+
+Places the family shops, in the D1 `stores` table: name, an optional photo (R2, same image route), and a
+latitude/longitude pair. The pair is optional so a store can be added first and pinned down later, but it is
+always both or neither. In the store's Add/Edit sheet, **Record my current location** asks the browser for a GPS
+fix (high accuracy, never a cached one) and fills in the two fields with the accuracy it got; press Save to keep
+it. The browser only offers location on HTTPS (or localhost) and the person has to allow it. Stores can be
+deleted from the Edit sheet; if items are located there the API answers `409` with them until the call is
+repeated with `?force=true`, and their locations in that store go with it (the items stay).
+
+An item can be sold at **several stores, each with its own location** ("Aisle 12", "Back wall by the dairy"),
+kept in `item_stores`. The item's Edit sheet has a "Where to find it" section: tick a store, then type where it
+is. The API takes it as a JSON array of `{ storeId, location }` in the `stores` form field and replaces the whole
+list; `GET /api/items` returns it as `stores` (with each store's name). Locations show on the Items screen.
+
+On the **List** screen, a "Shopping at" picker chooses the store (remembered per device in `localStorage`). Once
+one is chosen, every item shows where it is in that store ("Not set for…" if it hasn't been placed there).
+**Press and hold** an item (right-click on a desktop) to edit that location. That uses
+`PUT /api/items/:itemId/stores/:storeId` with `{ "location": "Aisle 12" }` (adds the item to the store if
+needed), which changes one store without touching the item's others. (`DELETE` on the same path unlinks an item
+from a store; the app doesn't use it, since the item's Edit sheet handles that.)
 
 ## List
 

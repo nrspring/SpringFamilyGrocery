@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import type { Item, User } from "../../shared/types";
+import type { Item, Store, User } from "../../shared/types";
 import { api } from "../api";
 import ItemThumb from "./ItemThumb";
 import PhotoCropper from "./PhotoCropper";
@@ -9,6 +9,8 @@ interface Props {
   item?: Item;
   /** Every item, so acceptable alternatives can be picked from them. */
   items: Item[];
+  /** Every store, so the item can be placed in the ones that sell it. */
+  stores: Store[];
   /** Who this device is; they become the item's "added by" when it is new. */
   user: User | null;
   /** Present when editing: asks the parent to confirm and delete this item. */
@@ -19,10 +21,15 @@ interface Props {
   onCancel: () => void;
 }
 
-export default function ItemForm({ item, items, user, onDelete, blocked, onSaved, onCancel }: Props) {
+export default function ItemForm({ item, items, stores, user, onDelete, blocked, onSaved, onCancel }: Props) {
   const [name, setName] = useState(item?.name ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [alternativeIds, setAlternativeIds] = useState<Set<string>>(new Set(item?.alternativeIds));
+  // The stores that sell this item (by id) and where to find it in each. A store being in the
+  // map is what "sold here" means; its value may be empty.
+  const [locations, setLocations] = useState<Map<string, string>>(
+    () => new Map(item?.stores.map((s) => [s.storeId, s.location])),
+  );
   const [search, setSearch] = useState("");
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -58,6 +65,18 @@ export default function ItemForm({ item, items, user, onDelete, blocked, onSaved
     });
   }
 
+  function toggleStore(id: string) {
+    setLocations((prev) => {
+      const next = new Map(prev);
+      if (!next.delete(id)) next.set(id, "");
+      return next;
+    });
+  }
+
+  function setLocation(id: string, location: string) {
+    setLocations((prev) => new Map(prev).set(id, location));
+  }
+
   function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     // Clear the input so picking the same photo again still fires a change.
@@ -82,6 +101,7 @@ export default function ItemForm({ item, items, user, onDelete, blocked, onSaved
         name: name.trim(),
         description: description.trim(),
         alternativeIds: [...alternativeIds],
+        stores: [...locations].map(([storeId, location]) => ({ storeId, location })),
         photo,
       };
       if (item) await api.updateItem(item.id, input);
@@ -161,6 +181,41 @@ export default function ItemForm({ item, items, user, onDelete, blocked, onSaved
             placeholder="Brand, size, where to find it…"
             onChange={(e) => setDescription(e.target.value)}
           />
+
+          <span className="field-label" id="stores-label">
+            Where to find it
+            {locations.size > 0 && <span className="count"> · {locations.size} store{locations.size === 1 ? "" : "s"}</span>}
+          </span>
+          {stores.length === 0 ? (
+            <p className="muted small-text">
+              No stores yet. Add some on the Stores screen, then come back to say where this is.
+            </p>
+          ) : (
+            <ul className="store-list" aria-labelledby="stores-label">
+              {stores.map((s) => {
+                const here = locations.get(s.id);
+                return (
+                  <li key={s.id}>
+                    <label className="alt-row">
+                      <input type="checkbox" checked={here !== undefined} onChange={() => toggleStore(s.id)} />
+                      <ItemThumb name={s.name} photoUrl={s.photoUrl} size={32} />
+                      <span>{s.name}</span>
+                    </label>
+                    {here !== undefined && (
+                      <input
+                        className="store-location"
+                        value={here}
+                        maxLength={60}
+                        placeholder="Where in the store? e.g. Aisle 12"
+                        aria-label={`Location in ${s.name}`}
+                        onChange={(e) => setLocation(s.id, e.target.value)}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
 
           <span className="field-label" id="alternatives-label">
             Acceptable alternatives
