@@ -18,6 +18,7 @@ interface ItemRow {
   adder_photo_key: string | null;
   /** Null unless the item is on the shopping list. */
   listed_at: string | null;
+  list_quantity: string | null;
   lister_id: string | null;
   lister_name: string | null;
   lister_color: string | null;
@@ -33,7 +34,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SELECT_ITEMS = `
   SELECT i.*,
          u.name AS adder_name, u.color AS adder_color, u.photo_key AS adder_photo_key,
-         l.created_at AS listed_at,
+         l.created_at AS listed_at, l.quantity AS list_quantity,
          lu.id AS lister_id, lu.name AS lister_name, lu.color AS lister_color,
          lu.photo_key AS lister_photo_key
     FROM items i
@@ -57,6 +58,7 @@ function toItem(row: ItemRow, alternativeIds: string[], stores: ItemStore[]): It
       ? {
           addedBy: userRef(row.lister_id, row.lister_name, row.lister_color, row.lister_photo_key),
           addedAt: row.listed_at,
+          quantity: row.list_quantity ?? "",
         }
       : null,
     alternativeIds,

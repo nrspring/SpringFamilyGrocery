@@ -139,6 +139,13 @@ export const api = {
   addToList: (itemId: string) => request<Item>(`/api/list/${itemId}`, { method: "PUT" }),
 
   removeFromList: (itemId: string) => request<Item>(`/api/list/${itemId}`, { method: "DELETE" }),
+  /** Sets the optional quantity note on a listed item; blank clears it. */
+  setListQuantity: (itemId: string, quantity: string) =>
+    request<Item>(`/api/list/${itemId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ quantity }),
+    }),
 
   listItems: () => request<Item[]>("/api/items"),
 

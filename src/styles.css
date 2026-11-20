@@ -445,6 +445,14 @@ button.zoom-step:hover:not(:disabled) {
 .item-alts {
   font-size: 0.85rem;
 }
+/* The optional quantity note on a List row. */
+.list-qty {
+  width: 100%;
+  max-width: 14rem;
+  margin: 4px 0;
+  padding: 6px 10px;
+  font-size: 1.05rem;
+}
 .item-added {
   display: flex;
   align-items: center;

@@ -6,6 +6,7 @@ import ItemThumb from "../components/ItemThumb";
 import ConfirmDefine from "../components/ConfirmDefine";
 import LocationEditor from "../components/LocationEditor";
 import PhotoViewer from "../components/PhotoViewer";
+import QuantityInput from "../components/QuantityInput";
 import { METERS_PER_MILE, currentPosition, distanceMeters, formatDistance } from "../geo";
 import { useLongPress } from "../useLongPress";
 
@@ -206,6 +207,15 @@ export default function List() {
                   <strong>{i.name}</strong>
                 </div>
                 {i.description && <p className="item-desc">{i.description}</p>}
+                <QuantityInput
+                  // Remount if the entry is replaced (removed and re-added), so it starts blank.
+                  key={`${i.id}:${i.list?.addedAt}`}
+                  item={i}
+                  onError={setError}
+                  onSaved={(updated) =>
+                    setItems((all) => all?.map((x) => (x.id === updated.id ? updated : x)) ?? all)
+                  }
+                />
                 {/* Locations only appear once a store is chosen. */}
                 {store && (
                   <p className={`item-place${here?.location ? "" : " unset"}`}>

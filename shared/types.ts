@@ -59,7 +59,12 @@ export interface Item {
   /** The family member who added it; null if the person who did is unknown. */
   addedBy: UserRef | null;
   /** Set when the item is on the shared shopping list; null when it isn't. */
-  list: { addedBy: UserRef | null; addedAt: string } | null;
+  list: {
+    addedBy: UserRef | null;
+    addedAt: string;
+    /** Optional free text such as "2" or "1 gallon"; empty unless someone typed one for this trip. */
+    quantity: string;
+  } | null;
   /** Ids of items that are acceptable substitutes for this one. */
   alternativeIds: string[];
   /** The stores that sell it, with where to find it in each, sorted by store name. */
