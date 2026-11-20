@@ -11,21 +11,39 @@ export class ApiError extends Error {
   }
 }
 
+/** How long to wait for the server. Uploads (photos) get longer, since a phone's upload link can be slow. */
+const TIMEOUT_MS = 30_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init);
-  if (res.status === 401) window.dispatchEvent(new Event("unauthorized"));
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`;
-    let body: Record<string, unknown> = {};
-    try {
-      body = (await res.json()) as Record<string, unknown>;
-      if (typeof body.error === "string") message = body.error;
-    } catch {
-      /* non-JSON error body */
+  // Without a limit, a request that never answers (a phone going through a tunnel, a dead Wi-Fi
+  // login page) leaves the screen waiting forever. Give up and say so instead.
+  const controller = new AbortController();
+  const limit = init?.body instanceof FormData ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS;
+  const timer = window.setTimeout(() => controller.abort(), limit);
+  try {
+    const res = await fetch(path, { ...init, signal: controller.signal });
+    if (res.status === 401) window.dispatchEvent(new Event("unauthorized"));
+    if (!res.ok) {
+      let message = `Request failed (${res.status})`;
+      let body: Record<string, unknown> = {};
+      try {
+        body = (await res.json()) as Record<string, unknown>;
+        if (typeof body.error === "string") message = body.error;
+      } catch {
+        /* non-JSON error body */
+      }
+      throw new ApiError(message, res.status, body);
     }
-    throw new ApiError(message, res.status, body);
+    return (res.status === 204 ? undefined : await res.json()) as T;
+  } catch (e) {
+    if (controller.signal.aborted) throw new Error("That took too long. Check your connection and try again.");
+    // fetch itself failed (no connection at all) rather than the server answering with an error.
+    if (e instanceof TypeError) throw new Error("Couldn't reach the server. Check your connection and try again.");
+    throw e;
+  } finally {
+    window.clearTimeout(timer);
   }
-  return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
 export interface UserInput {

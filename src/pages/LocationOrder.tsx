@@ -16,6 +16,8 @@ const naturalOrder = new Intl.Collator(undefined, { numeric: true, sensitivity: 
 
 /** How long a finger must rest on a row before it lifts, and how far it may wobble meanwhile. */
 const HOLD_MS = 250;
+/** A lifted row that hears nothing at all from the finger for this long is let go. */
+const IDLE_LET_GO_MS = 12_000;
 const HOLD_TOLERANCE_PX = 8;
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -43,6 +45,8 @@ interface DragState {
   rects: { top: number; height: number }[];
   shift: number;
   lastClientY: number;
+  /** When the finger last did anything, for noticing one that has gone without a word. */
+  lastEvent: number;
   frame: number;
 }
 
@@ -164,16 +168,21 @@ export default function LocationOrder() {
   function onPointerMove(e: PointerEvent) {
     if (dragState.current) {
       dragState.current.lastClientY = e.clientY;
+      dragState.current.lastEvent = Date.now();
       updateDrag();
     }
   }
 
   function stopDrag() {
     const d = dragState.current;
-    const { move, up, cancel } = listeners.current;
-    window.removeEventListener("pointermove", move);
-    window.removeEventListener("pointerup", up);
-    window.removeEventListener("pointercancel", cancel);
+    const l = listeners.current;
+    window.removeEventListener("pointermove", l.move);
+    window.removeEventListener("pointerup", l.up);
+    window.removeEventListener("pointercancel", l.cancel);
+    window.removeEventListener("touchend", l.touchEnd);
+    window.removeEventListener("touchcancel", l.cancel);
+    window.removeEventListener("blur", l.cancel);
+    document.removeEventListener("visibilitychange", l.hidden);
     if (d) cancelAnimationFrame(d.frame);
     dragState.current = null;
     setDrag(null);
@@ -217,26 +226,49 @@ export default function LocationOrder() {
       rects,
       shift,
       lastClientY: clientY,
+      lastEvent: Date.now(),
       frame: 0,
     };
     dragState.current = d;
     setDrag({ id: d.id, start: index, target: index, translate: 0, shift });
 
-    window.addEventListener("pointermove", listeners.current.move);
-    window.addEventListener("pointerup", listeners.current.up);
-    window.addEventListener("pointercancel", listeners.current.cancel);
+    // However the gesture ends, the drag must end with it. A drag that never lets go would leave
+    // the row lifted, the page unable to scroll, and the screen redrawing for ever.
+    const l = listeners.current;
+    window.addEventListener("pointermove", l.move);
+    window.addEventListener("pointerup", l.up);
+    window.addEventListener("pointercancel", l.cancel);
+    window.addEventListener("touchend", l.touchEnd);
+    window.addEventListener("touchcancel", l.cancel);
+    window.addEventListener("blur", l.cancel);
+    document.addEventListener("visibilitychange", l.hidden);
 
     // Near the top or bottom edge of the screen, scroll so a long list can be dragged all the way.
+    // Only that needs a loop; holding still costs nothing.
     const tick = () => {
       if (dragState.current !== d) return;
+      // Nothing heard from the finger for a long time: it has gone, so let go of the row.
+      if (Date.now() - d.lastEvent > IDLE_LET_GO_MS) {
+        current.current.cancel();
+        return;
+      }
       const top = 90;
       const bottom = window.innerHeight - 150; // clear of the tab bar
       // Only scroll toward the edge the row is being dragged towards. Otherwise grabbing a row
       // that already sits in an edge zone would start the page scrolling before you had moved.
       const dragged = d.lastClientY + window.scrollY - d.grabY;
-      if (d.lastClientY < top && dragged < 0) window.scrollBy(0, -Math.ceil((top - d.lastClientY) / 6));
-      else if (d.lastClientY > bottom && dragged > 0) window.scrollBy(0, Math.ceil((d.lastClientY - bottom) / 6));
-      updateDrag();
+      let scrolled = false;
+      if (d.lastClientY < top && dragged < 0) {
+        window.scrollBy(0, -Math.ceil((top - d.lastClientY) / 6));
+        scrolled = true;
+      } else if (d.lastClientY > bottom && dragged > 0) {
+        window.scrollBy(0, Math.ceil((d.lastClientY - bottom) / 6));
+        scrolled = true;
+      }
+      if (scrolled) {
+        d.lastEvent = Date.now(); // scrolling for the finger counts as the finger being there
+        updateDrag();
+      }
       d.frame = requestAnimationFrame(tick);
     };
     d.frame = requestAnimationFrame(tick);
@@ -290,6 +322,13 @@ export default function LocationOrder() {
     move: (e: PointerEvent) => current.current.move(e),
     up: () => current.current.up(),
     cancel: () => current.current.cancel(),
+    // A second finger lifting must not drop the row the first is still holding.
+    touchEnd: (e: TouchEvent) => {
+      if (e.touches.length === 0) current.current.up();
+    },
+    hidden: () => {
+      if (document.hidden) current.current.cancel();
+    },
   });
 
   // Never leave listeners behind if the screen is left mid-drag.
