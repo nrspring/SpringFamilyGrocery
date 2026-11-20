@@ -66,7 +66,8 @@ is worked out in the browser (the position never goes to the server). With no st
 shown. Once one is chosen, each item shows that store's location ("Not set for…" if it hasn't been placed
 there) and the list is **sorted in that store's walking order** (items with no location there last, ties by
 name). **Press and hold** an item (right-click on a desktop): with no store chosen it shows just the item's
-picture, big; with a store chosen it opens the photo and a box to edit the location in that store. That uses
+picture, big; with a store chosen it opens the photo and a box to edit the location in that store (if the item isn't set up
+for that store yet, it first asks whether to define it there). That uses
 `PUT /api/items/:itemId/stores/:storeId` with `{ "location": "Aisle 12" }` (adds the item to the store if
 needed), which changes one store without touching the item's others. (`DELETE` on the same path unlinks an item
 from a store; the app doesn't use it, since the item's Edit sheet handles that.)

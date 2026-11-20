@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { Item, Store } from "../../shared/types";
 import { api } from "../api";
 import ItemThumb from "../components/ItemThumb";
+import ConfirmDefine from "../components/ConfirmDefine";
 import LocationEditor from "../components/LocationEditor";
 import PhotoViewer from "../components/PhotoViewer";
 import { METERS_PER_MILE, currentPosition, distanceMeters, formatDistance } from "../geo";
@@ -19,6 +20,7 @@ export default function List() {
   // Press and hold: edits the item's location when a store is chosen, otherwise shows its picture.
   const [editing, setEditing] = useState<Item | null>(null);
   const [viewing, setViewing] = useState<Item | null>(null);
+  const [asking, setAsking] = useState<Item | null>(null);
   const [finding, setFinding] = useState(false);
   // The outcome of the last "find my store" press, shown where the usual hint goes.
   const [found, setFound] = useState<{ ok: boolean; text: string } | null>(null);
@@ -190,7 +192,13 @@ export default function List() {
             <li
               key={i.id}
               className="user-row item-row list-item pressable"
-              {...longPress(() => (store ? setEditing(i) : setViewing(i)))}
+              {...longPress(() => {
+                if (!store) setViewing(i);
+                // An item that isn't set up for this store yet asks first, so a stray press
+                // doesn't quietly add it there.
+                else if (i.stores.some((s) => s.storeId === store.id)) setEditing(i);
+                else setAsking(i);
+              })}
             >
               <ItemThumb name={i.name} photoUrl={i.photoUrl} />
               <div className="item-info">
@@ -227,6 +235,18 @@ export default function List() {
       </ul>
 
       {viewing && <PhotoViewer item={viewing} onClose={() => setViewing(null)} />}
+
+      {asking && store && (
+        <ConfirmDefine
+          item={asking}
+          store={store}
+          onCancel={() => setAsking(null)}
+          onYes={() => {
+            setEditing(asking);
+            setAsking(null);
+          }}
+        />
+      )}
 
       {editing && store && (
         <LocationEditor

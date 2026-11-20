@@ -808,6 +808,11 @@ button.chip[aria-pressed="true"]:hover:not(:disabled) {
   place-items: center;
   padding: 12px 0;
 }
+.confirm-text {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.4;
+}
 .location-field {
   display: flex;
   flex-direction: column;
